@@ -1,0 +1,221 @@
+import networkx as nx
+import matplotlib.pyplot as plt
+
+
+
+    
+def GraphGen(n, m, k):
+    """
+    Crea un grafo que representa un almacén con dimensiones n x m y k ubicaciones de almacenamiento.
+
+    Entradas:
+        n (int): Número de hileras (ancho del almacén).
+        m (int): Largo del almacén (número máximo de ubicaciones por hilera).
+        k (int): Número total de ubicaciones de almacenamiento.
+
+    Salida:
+        G (networkx.Graph): Grafo generado.
+    """
+    if k > n * m:
+        raise ValueError("El número de ubicaciones k no puede exceder el espacio total disponible n * m.")
+
+    G = nx.Graph()
+
+    # Nodos de entrada y salida
+    G.add_node("q1")  
+    G.add_node("q2")  
+
+    # Distribuir ubicaciones en las hileras
+    ubicaciones_por_hilera = [k // n] * n
+    for i in range(k % n):
+        ubicaciones_por_hilera[i] += 1
+
+    # Crear las ubicaciones y conectarlas
+    nodo_id = 1  
+    hileras = []
+
+    for i in range(n):
+        hilera = []
+        for j in range(ubicaciones_por_hilera[i]):
+            nodo = f"u{nodo_id}"
+            G.add_node(nodo)
+            hilera.append(nodo)
+            nodo_id += 1
+        hileras.append(hilera)
+
+    # Conectar nodos dentro de las hileras
+    for hilera in hileras:
+        for i in range(len(hilera) - 1):
+            G.add_edge(hilera[i], hilera[i + 1])
+
+    # Conexión extremos de las hileras 
+    for i in range(len(hileras) - 1):
+        G.add_edge(hileras[i][0], hileras[i + 1][0])  # Entrada de hilera i con entrada de hilera i+1
+        G.add_edge(hileras[i][-1], hileras[i + 1][-1])  # Salida de hilera i con salida de hilera i+1
+
+    # Conectar entrada almacén con los nodos de entrada de las hileras más cercanas
+    for hilera in hileras:
+        G.add_edge("q1", hilera[0])
+
+    # Conectar salida almacén con los nodos de salida de las hileras más cercanas
+    for hilera in hileras:
+        G.add_edge("q2", hilera[-1])
+
+    return G
+
+
+----------------------------------------------------------------------
+Del archivo funciones, creo que es la misma función que la anterior, no lo he revisado
+
+def GraphGen(n, m, k):
+    """
+    Genera un grafo que representa un almacén con dimensiones n x m y k ubicaciones de almacenamiento.
+
+    Parámetros:
+        n (int): Número de hileras (ancho del almacén).
+        m (int): Largo del almacén (número máximo de ubicaciones por hilera).
+        k (int): Número total de ubicaciones de almacenamiento.
+
+    Retorna:
+        G (networkx.Graph): Grafo generado.
+    """
+    if k > n * m:
+        raise ValueError("El número de ubicaciones k no puede exceder el espacio total disponible n * m.")
+
+    # Crear el grafo
+    G = nx.Graph()
+
+    # Añadir nodos de entrada y salida
+    G.add_node("q1")  # Nodo de entrada
+    G.add_node("q2")  # Nodo de salida
+
+    # Distribuir ubicaciones en las hileras
+    ubicaciones_por_hilera = [k // n] * n
+    for i in range(k % n):
+        ubicaciones_por_hilera[i] += 1
+
+    # Crear las ubicaciones y conectarlas
+    nodo_id = 1  # Identificador único para las ubicaciones
+    hileras = []
+
+    for i in range(n):
+        hilera = []
+        for j in range(ubicaciones_por_hilera[i]):
+            nodo = f"u{nodo_id}"
+            G.add_node(nodo)
+            hilera.append(nodo)
+            nodo_id += 1
+        hileras.append(hilera)
+
+    # Conectar nodos dentro de las hileras
+    for hilera in hileras:
+        for i in range(len(hilera) - 1):
+            G.add_edge(hilera[i], hilera[i + 1])
+
+    # Conectar extremos de las hileras con sus homólogos
+    for i in range(len(hileras) - 1):
+        G.add_edge(hileras[i][0], hileras[i + 1][0])  # Entrada de hilera i con entrada de hilera i+1
+        G.add_edge(hileras[i][-1], hileras[i + 1][-1])  # Salida de hilera i con salida de hilera i+1
+
+    # Conectar q1 con los nodos de entrada de las hileras más cercanas
+    for hilera in hileras:
+        G.add_edge("q1", hilera[0])
+
+    # Conectar q2 con los nodos de salida de las hileras más cercanas
+    for hilera in hileras:
+        G.add_edge("q2", hilera[-1])
+
+    return G
+
+-----------------------
+main anterior:
+
+for u, v, data in graph.edges(data=True):
+        if 'weight' not in data:
+            print(f"Missing weight: ({u}, {v})")
+
+grafo = funTFG.GraphGen(5, 9, 45, 2)
+
+
+    plt.figure(figsize=(10, 6))
+    pos = nx.spring_layout(grafo)  # Posiciones de los nodos
+    nx.draw(grafo, pos, with_labels=True, node_color="lightblue", node_size=500, font_size=10, font_weight="bold")
+    plt.title("Representación del Grafo del Almacén")
+    plt.show()
+    
+----------------------
+Simulate robots aleatorio:
+
+def simulate_robots(graph, robots, steps):
+    """
+    Simula el movimiento de los robots en el almacén.
+    
+    Cada robot se mueve aleatoriamente a un nodo vecino en cada paso.
+    """
+    plt.ion()  # Modo interactivo de matplotlib
+    fig, ax = plt.subplots(figsize=(8, 6))
+    pos = nx.spring_layout(graph, seed=42)
+
+    for step in range(steps):
+        ax.clear()
+        nx.draw(graph, pos, with_labels=True, node_size=500, node_color="lightblue")
+
+        # Mover los robots a un nodo vecino aleatorio
+        for robot in robots:
+            neighbors = list(graph.neighbors(robot["position"]))
+            if neighbors:
+                robot["position"] = random.choice(neighbors)
+
+        # Dibujar robots
+        robot_positions = [pos[robot["position"]] for robot in robots]
+        ax.scatter(*zip(*robot_positions), color="red", s=750, label="Robots")
+
+        plt.legend()
+        plt.pause(0.5)  # Esperar medio segundo entre cada actualización
+
+    plt.ioff()  # Desactivar modo interactivo
+    plt.show()
+
+
+------------------------------------
+def simulate_robots(graph, robots, steps, method="A*"):
+    """
+    Simula el movimiento de los robots en el almacén con asignación de paquetes.
+    """
+    plt.ion()
+    fig, ax = plt.subplots(figsize=(16, 12))
+    pos = nx.get_node_attributes(graph, 'posicion')
+    # pos = nx.spring_layout(graph, seed=42)
+
+    for step in range(steps):
+        ax.clear()
+        nx.draw(graph, pos, with_labels=True, node_size=350, node_color="lightblue")
+
+        # Generar paquetes en q1
+        packages = ["q1"] * min(len(robots), random.randint(1, len(robots)))
+
+        # Asignar paquetes a robots disponibles
+        for robot in robots:
+            if robot["target"] is None and packages:
+                target = random.choice(list(graph.nodes))  # Ubicación aleatoria
+                robot["target"] = target
+                packages.pop()
+
+        # Mover robots siguiendo A*
+        for robot in robots:
+            if robot["target"]:
+                path = a_star_search(graph, robot["position"], robot["target"])
+                if len(path) > 1:
+                    robot["position"] = path[1]
+                if robot["position"] == robot["target"]:
+                    robot["target"] = None
+        
+
+        # Dibujar robots
+        robot_positions = [pos[robot["position"]] for robot in robots]
+        ax.scatter(*zip(*robot_positions), color="red", s=750, label="Robots")
+        plt.legend()
+        plt.pause(0.5)
+
+    plt.ioff()
+    plt.show()
