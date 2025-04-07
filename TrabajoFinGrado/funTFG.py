@@ -137,8 +137,8 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
     simulation_data = []
     paquetes_visuales = []
     current_time = 0.0
-    flujo_paquetes = 5
-    sd = 0.25
+    flujo_paquetes = 1
+    sd = .5
     f_min = flujo_paquetes-sd
     f_max = flujo_paquetes+sd  
 
@@ -151,7 +151,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
     gestor_robots = GestionRobots(robots, nodo_q1, nodo_q2, graph)
 
     # Inicializar temporizadores para recepción y emisión
-    proxima_recepcion = random.uniform(f_min, f_max) # lowest and highest
+    proxima_recepcion = random.uniform(f_min+1, f_max+1) # lowest and highest
     proxima_emision = random.uniform(f_min, f_max)
 
     # Inicializar robots correctamente
@@ -171,7 +171,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
 
         if proxima_recepcion <= 0:
             gestor_paquetes.recepcion()
-            proxima_recepcion = random.uniform(f_min, f_max)
+            proxima_recepcion = random.uniform(f_min+1, f_max+1)
 
         if proxima_emision <= 0:
             estantes = [node for node in graph.nodes if node.estante]
@@ -212,11 +212,15 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                   
 
                 elif robot.estado == 'almacenamiento':
-                    robot.position.añadir_paquete(robot.paquete_actual)
-                    paquetes_visuales.remove(robot.paquete_actual)
-                    robot.paquete_actual = None
-                    robot.destino_final = None
-                    gestor_robots.espera(robot)
+                    try:    
+                        robot.position.añadir_paquete(robot.paquete_actual)
+                        paquetes_visuales.remove(robot.paquete_actual)
+                        robot.paquete_actual = None
+                        robot.destino_final = None
+                        gestor_robots.espera(robot)
+                    except:
+                        gestor_robots.reasignacion(robot, gestor_paquetes, paquetes_visuales)
+                    
 
                 elif robot.estado == 'buscar':
                     paquete_recogido = robot.position.retirar_paquete()

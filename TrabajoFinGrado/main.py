@@ -4,10 +4,10 @@ from funAuxTFG import guardar_informacion,cargar_informacion
 
 
 if __name__ == "__main__":
-    n, m, k, d = 4, 2, 8, 0
-    num_robots = 1
-    tsam = 0.3
-    total_simulation_time = 40
+    n, m, k, d = 8, 6, 48, 1
+    num_robots = 5
+    tsam = 0.1
+    total_simulation_time = 400
     carga_inicial = 0
     
     # Generación del grafo del almacén
