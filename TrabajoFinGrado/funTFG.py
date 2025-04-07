@@ -1,10 +1,10 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
-import heapq
 import math
 from algoritmos import a_star_search
-from Clases import Nodo,Arista,Robot,Paquete,GestionRobots,GestionPaquetes
+from Clases import Nodo,Arista,Robot,Paquete
+from gestores import GestionRobots,GestionPaquetes
 
 def GraphGen(n, m, k, d):
     """
@@ -403,96 +403,9 @@ def simulate_robots_continuous1(graph, robots, total_time, dt=0.1, speed=1):
     return simulation_data
 
 
-def simulate_robots_continuous1(graph, robots, total_time, dt=0.1, speed=1):
-    simulation_data = []
-    paquetes_visuales = []
-    current_time = 0.0
-
-    # Encontrar nodo q1 y q2
-    nodo_q1 = next(node for node in graph.nodes if node.nombre == "q1")
-    nodo_q2 = next(node for node in graph.nodes if node.nombre == "q2")
-
-    # Inicialmente, 5 paquetes visualmente creados en q1
-    paquetes_generados = [Paquete(posicion=nodo_q1.posicion) for _ in range(5)]
-    paquetes_visuales.extend(paquetes_generados)
-
-    # Inicialización correcta de robots
-    for robot in robots:
-        robot.continuous_position = robot.position.posicion
-        robot.paquete_actual = None
-        robot.target = None
-        robot.path = []
-        robot.current_edge_index = 0
-        robot.progress_along_edge = 0.0
-
-    while current_time < total_time:
-        for robot in robots:
-            # Caso 1: Robot sin tarea (sin paquete, sin objetivo)
-            if robot.target is None and robot.paquete_actual is None:
-                if paquetes_generados:
-                    robot.target = nodo_q1
-                    robot.path = a_star_search(graph, robot.position, nodo_q1)
-                    robot.current_edge_index = 0
-                    robot.progress_along_edge = 0.0
-
-            # Caso 2: Robot en q1, recogiendo paquete
-            if robot.position == nodo_q1 and robot.paquete_actual is None:
-                if paquetes_generados:
-                    robot.paquete_actual = paquetes_generados.pop(0)
-                    # Elegir destino (estante con espacio disponible)
-                    estantes_validos = [node for node in graph.nodes if node.estante and node.get_cantidad() < 10]
-                    if estantes_validos:
-                        robot.target = random.choice(estantes_validos)
-                        robot.path = a_star_search(graph, robot.position, robot.target)
-                        robot.current_edge_index = 0
-                        robot.progress_along_edge = 0.0
-
-            # Caso 3: Robot en estante, dejando paquete
-            if robot.paquete_actual and robot.position == robot.target and robot.target != nodo_q1:
-                robot.position.añadir_paquete(robot.paquete_actual)
-                paquetes_visuales.remove(robot.paquete_actual)
-                robot.paquete_actual = None
-                robot.target = None
-
-            # Movimiento continuo del robot
-            if robot.path and robot.current_edge_index < len(robot.path) - 1:
-                start_node = robot.path[robot.current_edge_index]
-                end_node = robot.path[robot.current_edge_index + 1]
-                dx, dy = end_node.posicion[0] - start_node.posicion[0], end_node.posicion[1] - start_node.posicion[1]
-                segment_distance = math.hypot(dx, dy)
-                move_distance = speed * dt
-                remaining_distance = segment_distance - robot.progress_along_edge
-
-                if move_distance < remaining_distance:
-                    robot.progress_along_edge += move_distance
-                    alpha = robot.progress_along_edge / segment_distance
-                    new_pos = (start_node.posicion[0] + alpha * dx,
-                               start_node.posicion[1] + alpha * dy)
-                    robot.continuous_position = new_pos
-                else:
-                    # Completar movimiento hacia el nodo siguiente
-                    robot.position = end_node
-                    robot.continuous_position = end_node.posicion
-                    robot.current_edge_index += 1
-                    robot.progress_along_edge = 0.0
-
-            # Movimiento visual del paquete con robot
-            if robot.paquete_actual:
-                robot.paquete_actual.posicion = robot.continuous_position
-
-        # Snapshot visual actualizado
-        snapshot = {
-            'robots': {robot.id: robot.continuous_position for robot in robots},
-            'paquetes': [paquete.posicion for paquete in paquetes_visuales]
-        }
-        simulation_data.append(snapshot)
-        current_time += dt
-
-    return simulation_data
-
 def playback_simulation(graph, simulation_data, dt=0.1):
     plt.ion()
-    fig, ax = plt.subplots(figsize=(16, 12))
+    fig, ax = plt.subplots(figsize=(12,12))
     pos = {node: node.posicion for node in graph.nodes()}
 
     for snapshot in simulation_data:
@@ -523,28 +436,4 @@ def playback_simulation(graph, simulation_data, dt=0.1):
     plt.ioff()
     plt.show()
 
-
-def playback_simulation1(graph, simulation_data, dt=0.1):
-    plt.ion()
-    fig, ax = plt.subplots(figsize=(16, 12))
-    pos = {node: node.posicion for node in graph.nodes()}
-    
-    for snapshot in simulation_data:
-        ax.clear()
-        nx.draw(graph, pos, with_labels=True, node_size=400, node_color="lightgray", ax=ax)
-
-        # Dibujar robots
-        robot_positions = list(snapshot['robots'].values())
-        ax.scatter(*zip(*robot_positions), color="red", s=750, label="Robots")
-
-        # Dibujar paquetes
-        paquete_positions = snapshot['paquetes']
-        if paquete_positions:
-            ax.scatter(*zip(*paquete_positions), color="blue", s=500, label="Paquetes")
-
-        ax.legend(loc="upper left", fontsize=12, frameon=True)
-        plt.pause(dt)
-    
-    plt.ioff()
-    plt.show()
 

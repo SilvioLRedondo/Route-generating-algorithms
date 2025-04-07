@@ -1,7 +1,6 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import funTFG
-from Clases import GestionPaquetes
 from funAuxTFG import guardar_informacion,cargar_informacion
 
 
@@ -9,9 +8,9 @@ from funAuxTFG import guardar_informacion,cargar_informacion
 if __name__ == "__main__":
         # Parámetros habituales
     n, m, k, d = 4, 6, 24, 1
-    num_robots = 5
+    num_robots = 2
     tsam = 0.1
-    total_simulation_time = 25
+    total_simulation_time = 50
 
     # Generación del grafo del almacén
     graph = funTFG.GraphGen(n, m, k, d)
