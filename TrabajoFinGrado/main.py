@@ -1,27 +1,25 @@
-import networkx as nx
-import matplotlib.pyplot as plt
 import funTFG
 from funAuxTFG import guardar_informacion,cargar_informacion
 
 
 
 if __name__ == "__main__":
-        # Parámetros habituales
-    n, m, k, d = 4, 6, 24, 1
-    num_robots = 2
-    tsam = 0.1
-    total_simulation_time = 50
-
+    n, m, k, d = 4, 2, 8, 0
+    num_robots = 1
+    tsam = 0.3
+    total_simulation_time = 40
+    carga_inicial = 0
+    
     # Generación del grafo del almacén
     graph = funTFG.GraphGen(n, m, k, d)
 
-    # Inicialización aleatoria del almacén (etapa 2)
-    funTFG.inicializar_almacen(graph, carga_inicial=0.2)
+    # Inicialización aleatoria del almacén 
+    funTFG.inicializar_almacen(graph, carga_inicial)
 
     # Crear robots
     robots = funTFG.create_robots(num_robots, graph)
 
-    # Simulación completa (etapa 5 integrada)
+    # Simulación completa 
     simulation_data = funTFG.simulate_robots_continuous(graph, robots, total_simulation_time, dt=tsam, speed=1)
 
     # Visualización

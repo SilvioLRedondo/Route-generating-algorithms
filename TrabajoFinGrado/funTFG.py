@@ -137,6 +137,11 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
     simulation_data = []
     paquetes_visuales = []
     current_time = 0.0
+    flujo_paquetes = 5
+    sd = 0.25
+    f_min = flujo_paquetes-sd
+    f_max = flujo_paquetes+sd  
+
 
     nodo_q1 = next(node for node in graph.nodes if node.nombre == "q1")
     nodo_q2 = next(node for node in graph.nodes if node.nombre == "q2")
@@ -146,8 +151,8 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
     gestor_robots = GestionRobots(robots, nodo_q1, nodo_q2, graph)
 
     # Inicializar temporizadores para recepción y emisión
-    proxima_recepcion = random.uniform(0.5, 2.0)
-    proxima_emision = random.uniform(1.0, 3.0)
+    proxima_recepcion = random.uniform(f_min, f_max) # lowest and highest
+    proxima_emision = random.uniform(f_min, f_max)
 
     # Inicializar robots correctamente
     for robot in robots:
@@ -166,12 +171,12 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
 
         if proxima_recepcion <= 0:
             gestor_paquetes.recepcion()
-            proxima_recepcion = random.uniform(0.5, 2.0)
+            proxima_recepcion = random.uniform(f_min, f_max)
 
         if proxima_emision <= 0:
             estantes = [node for node in graph.nodes if node.estante]
             gestor_paquetes.emision(estantes)
-            proxima_emision = random.uniform(1.0, 3.0)
+            proxima_emision = random.uniform(f_min, f_max)
 
         # Asignar tareas dinámicamente a robots
         gestor_robots.asignar_tareas(gestor_paquetes)
@@ -204,6 +209,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                     robot.paquete_actual.posicion = robot.continuous_position
                     paquetes_visuales.append(robot.paquete_actual)
                     gestor_robots.almacenamiento(robot, robot.destino_final)
+                  
 
                 elif robot.estado == 'almacenamiento':
                     robot.position.añadir_paquete(robot.paquete_actual)
@@ -213,12 +219,16 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                     gestor_robots.espera(robot)
 
                 elif robot.estado == 'buscar':
-                    robot.paquete_actual.posicion = robot.continuous_position
-                    paquetes_visuales.append(robot.paquete_actual)
+                    paquete_recogido = robot.position.retirar_paquete()
+                    if paquete_recogido:
+                        robot.paquete_actual = paquete_recogido
+                        robot.paquete_actual.posicion = robot.continuous_position
+                        paquetes_visuales.append(robot.paquete_actual)
                     gestor_robots.salida(robot)
 
                 elif robot.estado == 'salida' and robot.position == nodo_q2:
-                    paquetes_visuales.remove(robot.paquete_actual)
+                    if robot.paquete_actual in paquetes_visuales:
+                        paquetes_visuales.remove(robot.paquete_actual)
                     robot.paquete_actual = None
                     robot.destino_final = None
                     gestor_robots.espera(robot)

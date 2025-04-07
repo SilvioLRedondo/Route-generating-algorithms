@@ -54,7 +54,7 @@ class Nodo:
         else:
             self.almacenamiento = (producto, cantidad - 1)
         return Paquete(producto)
-        return self.almacenamiento is not None and self.almacenamiento[1] >= 10
+    
 
     def esta_vacio(self):
         return self.almacenamiento is None or self.almacenamiento[1] == 0

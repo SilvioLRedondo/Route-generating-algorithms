@@ -69,13 +69,11 @@ class GestionRobots:
                         robot.paquete_actual = recepcion
                         self.recogida(robot)
                         robot.destino_final = destino
-                        continue  # Mantener este continue
+                        continue  
                     else:
-                        # Este es el cambio clave:
                         # Si no hay destino compatible, devolver paquete a la cola
                         print("[AVISO] No hay estantes compatibles disponibles. Paquete devuelto a cola.")
                         gestor_paquetes.cola_recepcion.insert(0, recepcion)
-                        # No usar continue aquí, porque no se asignó tarea al robot aún.
 
                 # Por defecto, espera si no hay tareas
                 self.espera(robot)
