@@ -219,3 +219,146 @@ def simulate_robots(graph, robots, steps, method="A*"):
 
     plt.ioff()
     plt.show()
+
+
+-------------Desechado a día: 06/04/22025----------------
+
+
+class Robot1:
+    def __init__(self, id, position):
+        """
+        Constructor del robot.
+        """
+        self.id = id
+        self.position = position  # Nodo discreto
+        self.target = None
+        self.distance = 0
+        self.capacidad_carga = 0
+        self.autonomia = 100
+        self.disponible = True
+        # Atributos para la simulación continua:
+        self.continuous_position = None  # Posición continua (tuple)
+        self.path = []  # Trayectoria (lista de nodos)
+        self.current_edge_index = 0  # Índice del segmento actual
+        self.progress_along_edge = 0.0  # Progreso (distancia recorrida en el segmento actual)
+
+    def set_target(self, target):
+        self.target = target
+
+    def mover(self, nueva_posicion):
+        self.position = nueva_posicion
+
+    def __repr__(self):
+        return f"Robot {self.id}"
+
+class Nodo1:
+    def __init__(self, nombre, posicion, peso=None, altura=None, estante=None):
+        """
+        Constructor del nodo.
+        """
+        self.nombre = nombre
+        self.posicion = posicion
+        self.peso = peso # Capacidad
+        self.altura = altura
+        self.estante = estante # Objeto que contenga
+
+    def __hash__(self):
+        return hash(self.nombre)
+    
+    def __eq__(self, other):
+        return isinstance(other, Nodo) and self.nombre == other.nombre
+    
+    def __repr__(self):
+        return self.nombre
+
+    def __lt__(self, other):
+        return self.nombre < other.nombre
+    
+    def get_posicion(self):
+        return self.posicion
+
+    def get_estante(self):
+        return self.estante
+---------
+
+
+def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
+    """
+    Calcula la simulación en dominio continuo, almacenando un snapshot del estado (posición continua de cada robot)
+    en cada intervalo dt.
+    """
+    simulation_data = []
+    current_time = 0.0
+
+    # Inicializar la posición continua de cada robot
+    for robot in robots:
+        robot.continuous_position = robot.position.posicion
+        robot.path = []
+        robot.current_edge_index = 0
+        robot.progress_along_edge = 0.0
+
+    while current_time < total_time:
+        # Asignar destino a robots sin target
+        for robot in robots:
+            if robot.target is None:
+                target = random.choice(list(graph.nodes()))
+                robot.set_target(target)
+                robot.path = a_star_search(graph, robot.position, robot.target)
+                robot.current_edge_index = 0
+                robot.progress_along_edge = 0.0
+
+        # Actualizar la posición continua para cada robot
+        for robot in robots:
+            if robot.target and robot.path and robot.current_edge_index < len(robot.path) - 1:
+                start_node = robot.path[robot.current_edge_index]
+                end_node = robot.path[robot.current_edge_index + 1]
+                start_pos = start_node.posicion
+                end_pos = end_node.posicion
+                dx = end_pos[0] - start_pos[0]
+                dy = end_pos[1] - start_pos[1]
+                segment_distance = math.sqrt(dx**2 + dy**2)
+                distance_to_move = speed * dt
+                remaining_distance = segment_distance - robot.progress_along_edge
+                if distance_to_move < remaining_distance:
+                    robot.progress_along_edge += distance_to_move
+                    alpha = robot.progress_along_edge / segment_distance
+                    new_x = start_pos[0] + alpha * dx
+                    new_y = start_pos[1] + alpha * dy
+                    robot.continuous_position = (new_x, new_y)
+                else:
+                    # Completa el segmento actual
+                    robot.position = end_node  # Actualización discreta del nodo
+                    robot.continuous_position = end_node.posicion
+                    robot.current_edge_index += 1
+                    robot.progress_along_edge = 0.0
+                    if robot.current_edge_index >= len(robot.path) - 1:
+                        robot.target = None
+                        robot.path = []
+                        robot.current_edge_index = 0
+        # Guardar snapshot del estado actual
+        snapshot = {robot.id: robot.continuous_position for robot in robots}
+        # snapshot = [robot.continuous_position for robot in robots] #--------------------------------
+        simulation_data.append(snapshot)
+        current_time += dt
+
+    return simulation_data
+
+
+def playback_simulation(graph, simulation_data, dt=0.1):
+    """
+    Reproduce la simulación a partir de los snapshots calculados.
+    """
+    plt.ion()
+    fig, ax = plt.subplots(figsize=(16, 12))
+    pos = {node: node.posicion for node in graph.nodes()}
+    
+    for snapshot in simulation_data:
+        ax.clear()
+        nx.draw(graph, pos, with_labels=True, node_size=350, node_color="lightblue")
+        robot_positions = list(snapshot.values())
+        ax.scatter(*zip(*robot_positions), color="red", s=750, label="Robots")
+        ax.legend(loc="upper left", fontsize=12, frameon=True)
+        plt.pause(dt)
+    
+    plt.ioff()
+    plt.show()
