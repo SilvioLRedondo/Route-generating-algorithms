@@ -78,6 +78,8 @@ class Arista:
         self.capacidad = capacidad  # Cantidad de robots que pueden pasar simultáneamente
         self.bidireccional = bidireccional
 
+        self.ocupacion = 0
+
     def __repr__(self):
         return f"Arista({self.nodo1}, {self.nodo2}, peso={self.peso}, tipo={self.tipo})"
 

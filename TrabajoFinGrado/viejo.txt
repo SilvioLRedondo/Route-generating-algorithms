@@ -474,3 +474,180 @@ def playback_simulation1(graph, simulation_data, dt=0.1):
     
     plt.ioff()
     plt.show()
+
+
+----------08/04/2024-----------
+
+
+def simulate_robots_continuous1(graph, robots, total_time, dt=0.1, speed=1):
+    simulation_data = []
+    paquetes_visuales = []
+    current_time = 0.0
+    max_occupation_array = []
+
+    nodo_q1 = next(node for node in graph.nodes if node.nombre == "q1")
+    nodo_q2 = next(node for node in graph.nodes if node.nombre == "q2")
+
+    paquetes_generados = [Paquete(posicion=nodo_q1.posicion) for _ in range(5)]
+    paquetes_visuales.extend(paquetes_generados)
+
+    # Inicialización ajustada en simulate_robots_continuous
+    for robot in robots:
+        robot.continuous_position = robot.position.posicion
+        robot.paquete_actual = None
+        robot.target = None
+        robot.estado = 'espera'  # claramente definido el estado inicial
+        robot.destino_final = None
+        robot.path = []
+        robot.current_edge_index = 0
+        robot.progress_along_edge = 0.0
+    
+    # Crear objeto gestor de paquetes
+    gestor_paquetes = GestionPaquetes()
+
+    # Prueba inicial de recepción (crear paquetes)
+    for _ in range(3):
+        gestor_paquetes.recepcion()
+
+    # Prueba inicial de emisión (solicitar paquetes del almacén)
+    estantes = [node for node in graph.nodes if node.estante]
+    for _ in range(3):
+        gestor_paquetes.emision(estantes)
+
+    # Comprobar las colas:
+    print("\nPaquetes en cola de recepción (q1):")
+    for paquete in gestor_paquetes.cola_recepcion:
+        print("-", paquete.producto)
+
+    print("\nPaquetes en cola de emisión (desde estantes):")
+    for paquete, estante in gestor_paquetes.cola_emision:
+        print(f"- {paquete.producto} (desde estante {estante.nombre})")
+
+    # Definir nodos q1 y q2 del grafo
+    nodo_q1 = next(node for node in graph.nodes if node.nombre == "q1")
+    nodo_q2 = next(node for node in graph.nodes if node.nombre == "q2")
+
+    # Crear objeto gestor de robots
+    gestor_robots = GestionRobots(robots, nodo_q1, nodo_q2, graph)
+
+    # Ejemplo inicial de asignación
+    gestor_robots.asignar_tareas(gestor_paquetes)
+
+    # Comprobar visualmente (o mediante prints)
+    for robot in robots:
+        print(f"Robot {robot.id} estado: {robot.estado}, target: {robot.target}")
+
+    while current_time < total_time:
+        for u, v, data in graph.edges(data=True):
+            data["objeto_arista"].ocupacion = 0
+
+        for robot in robots:
+            # Caso A: Robot sin paquete ni tarea asignada
+            if robot.paquete_actual is None and robot.target is None:
+                # Prioridad: primero sacar paquete de estante a q2
+                estantes_con_paquetes = [node for node in graph.nodes if node.estante and node.get_cantidad() > 0]
+                if estantes_con_paquetes:
+                    robot.target = random.choice(estantes_con_paquetes)
+                elif paquetes_generados:  # Sino, ir a recoger paquetes nuevos en q1
+                    robot.target = nodo_q1
+
+                if robot.target:
+                    robot.path = a_star_search(graph, robot.position, robot.target)
+                    robot.current_edge_index = 0
+                    robot.progress_along_edge = 0.0
+
+            # Caso B: Robot recogiendo paquete desde q1 o estante
+            if robot.paquete_actual is None and robot.position == robot.target:
+                if robot.position == nodo_q1 and paquetes_generados:
+                    robot.paquete_actual = paquetes_generados.pop(0)
+                    destinos_posibles = [node for node in graph.nodes if node.estante and node.get_cantidad() < 10]
+                    if destinos_posibles:
+                        robot.target = random.choice(destinos_posibles)
+                        robot.path = a_star_search(graph, robot.position, robot.target)
+                        robot.current_edge_index = 0
+                        robot.progress_along_edge = 0.0
+                elif robot.position.estante and robot.position.get_cantidad() > 0:
+                    robot.paquete_actual = robot.position.retirar_paquete()
+                    paquetes_visuales.append(robot.paquete_actual)
+                    robot.target = nodo_q2
+                    robot.path = a_star_search(graph, robot.position, nodo_q2)
+                    robot.current_edge_index = 0
+                    robot.progress_along_edge = 0.0
+
+            # Caso C: Robot depositando paquete en estante o en q2
+            if robot.paquete_actual and robot.position == robot.target:
+                if robot.target == nodo_q2:
+                    paquetes_visuales.remove(robot.paquete_actual)
+                elif robot.position.estante and robot.position.get_cantidad() > 0:
+                    robot.paquete_actual = robot.position.retirar_paquete()
+                    robot.paquete_actual.posicion = robot.continuous_position
+                    paquetes_visuales.append(robot.paquete_actual)  # Añadir visualmente el paquete aquí (clave)
+                    robot.target = nodo_q2
+                    robot.path = a_star_search(graph, robot.position, nodo_q2)
+                    robot.current_edge_index = 0
+                    robot.progress_along_edge = 0.0
+                else:
+                    robot.position.añadir_paquete(robot.paquete_actual)
+                    paquetes_visuales.remove(robot.paquete_actual)
+                
+                robot.paquete_actual = None
+                robot.target = None
+                
+
+            # Movimiento continuo
+            if robot.path and robot.current_edge_index < len(robot.path) - 1:
+                start_node = robot.path[robot.current_edge_index]
+                end_node = robot.path[robot.current_edge_index + 1]
+                dx, dy = end_node.posicion[0] - start_node.posicion[0], end_node.posicion[1] - start_node.posicion[1]
+                segment_distance = math.hypot(dx, dy)
+                move_distance = speed * dt
+                remaining_distance = segment_distance - robot.progress_along_edge
+
+                if move_distance < remaining_distance:
+                    robot.progress_along_edge += move_distance
+                    alpha = robot.progress_along_edge / segment_distance
+                    new_pos = (start_node.posicion[0] + alpha * dx,
+                               start_node.posicion[1] + alpha * dy)
+                    robot.continuous_position = new_pos
+                else:
+                    robot.position = end_node
+                    robot.continuous_position = end_node.posicion
+                    robot.current_edge_index += 1
+                    robot.progress_along_edge = 0.0
+
+            if robot.paquete_actual:
+                robot.paquete_actual.posicion = robot.continuous_position
+
+        for robot in robots:
+            # Revisa si el robot no ha llegado al último nodo de su path
+            if robot.path and robot.current_edge_index < (len(robot.path) - 1):
+                start_node = robot.path[robot.current_edge_index]
+                end_node = robot.path[robot.current_edge_index + 1]
+                # Ubica la arista en el grafo y suma 1
+                arista = graph[start_node][end_node]["objeto_arista"]
+                arista.ocupacion += 1
+
+        max_occupancy = 0
+        for _, _, data in graph.edges(data=True):
+            if data["objeto_arista"].ocupacion > max_occupancy:
+                max_occupancy = data["objeto_arista"].ocupacion
+
+        max_occupation_array.append(max_occupancy)
+
+        # Estado visual de almacenamiento (Estantes)
+        estado_almacenamiento = {}
+        for node in graph.nodes:
+            if node.estante:
+                cantidad = node.get_cantidad()
+                estado_almacenamiento[node.nombre] = (node.posicion, cantidad)
+
+        snapshot = {
+            'robots': {robot.id: robot.continuous_position for robot in robots},
+            'paquetes': [paquete.posicion for paquete in paquetes_visuales],
+            'almacenamiento': estado_almacenamiento
+        }
+
+        simulation_data.append(snapshot)
+        current_time += dt
+
+    return simulation_data,max_occupation_array
