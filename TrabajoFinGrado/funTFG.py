@@ -248,8 +248,8 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
             if robot.paquete_actual:
                 robot.paquete_actual.posicion = robot.continuous_position
 
-
-        # 6) SUMAR +1 AL ATRIBUTO "OCUPACION" DE LA ARISTA QUE ESTÁN CRUZANDO
+        # CONTAR OCUPACIÓN DE CADA ARISTA:
+        # SUMAR +1 AL ATRIBUTO "OCUPACION" DE LA ARISTA QUE ESTÁN CRUZANDO
         for robot in robots:
             # Revisa si el robot no ha llegado al último nodo de su path
             if robot.path and robot.current_edge_index < (len(robot.path) - 1):
@@ -259,7 +259,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                 arista = graph[start_node][end_node]["objeto_arista"]
                 arista.ocupacion += 1
 
-        # 7) BUSCAR LA OCUPACIÓN MÁXIMA DE LAS ARISTAS Y GUARDARLA EN max_occupation_array
+        # BUSCAR LA OCUPACIÓN MÁXIMA DE LAS ARISTAS Y GUARDARLA EN max_occupation_array
         max_occupancy = 0
         for _, _, data in graph.edges(data=True):
             if data["objeto_arista"].ocupacion > max_occupancy:

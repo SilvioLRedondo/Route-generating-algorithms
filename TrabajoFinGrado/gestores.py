@@ -242,7 +242,7 @@ class GestionRobots:
             return  # fin de reasignacion
 
         # 4) Si encontramos un estante alternativo, reasignamos el robot a ese nuevo destino
-        print(f"[REASIGNACIÓN] Se reasigna el robot {robot.id} al estante '{destino_alternativo.nombre}'.")
+        # print(f"[REASIGNACIÓN] Se reasigna el robot {robot.id} al estante '{destino_alternativo.nombre}'.")
 
         # Preparamos el robot para ir al nuevo objetivo
         robot.target = destino_alternativo
