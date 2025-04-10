@@ -12,7 +12,7 @@ def a_star_search(graph, start, goal):
             break
         for neighbor in graph.neighbors(current):
             arista = graph[current][neighbor]['objeto_arista']
-            new_cost = cost_so_far[current] + arista.get_peso()
+            new_cost = cost_so_far[current] + arista.get_peso() + arista.longitud()
             if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
                 cost_so_far[neighbor] = new_cost
                 heapq.heappush(queue, (new_cost, neighbor))
