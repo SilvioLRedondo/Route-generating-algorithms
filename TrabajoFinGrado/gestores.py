@@ -128,35 +128,6 @@ class GestionRobots:
                             self.espera(robot)
                             continue
 
-    def asignar_tareasq(self, gestor_paquetes):
-
-        for robot in self.robots:
-            if robot.estado == 'espera' or robot.target is None:
-                # Prioridad máxima: sacar paquetes del almacén (emisión)
-                emision = gestor_paquetes.obtener_proximo_emision()
-                if emision:
-                    paquete, estante_origen = emision
-                    robot.paquete_actual = paquete
-                    self.buscar(robot, estante_origen)
-                    robot.destino_final = self.nodo_q2
-                    continue  # Mantener este continue
-
-                # Segunda prioridad: almacenar paquetes entrantes (recepción)
-                recepcion = gestor_paquetes.obtener_proximo_recepcion()
-                if recepcion:
-                    destino = self.estante_mas_libre(recepcion.producto)
-                    if destino:
-                        robot.paquete_actual = recepcion
-                        self.recogida(robot)
-                        robot.destino_final = destino
-                        continue  
-                    else:
-                        # Si no hay destino compatible, devolver paquete a la cola
-                        # print("[AVISO] No hay estantes compatibles disponibles. Paquete devuelto a cola.")
-                        gestor_paquetes.cola_recepcion.insert(0, recepcion)
-
-                # Por defecto, espera si no hay tareas
-                self.espera(robot)
 
     def estante_mas_libre(self, producto):
         candidatos = [

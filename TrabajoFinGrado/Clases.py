@@ -135,7 +135,7 @@ class Robot:
         return f"Robot {self.id}"
     
     def set_estado(self, nuevo_estado):
-        estados_validos = ['recogida', 'almacenamiento', 'espera', 'buscar', 'salida']
+        estados_validos = ['recogida', 'almacenamiento', 'espera', 'buscar', 'salida','critico']
         if nuevo_estado in estados_validos:
             self.estado = nuevo_estado
         else:

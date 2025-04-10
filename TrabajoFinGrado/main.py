@@ -4,11 +4,11 @@ from funAuxTFG import guardar_informacion,cargar_informacion
 
 
 if __name__ == "__main__":
-    n, m, k, d = 5, 6, 30, 1
-    num_robots = 15
+    n, m, k, d = 4, 4, 16, 1
+    num_robots = 32
     tsam = 0.1
-    total_simulation_time = 30
-    carga_inicial = 0
+    total_simulation_time = 50
+    carga_inicial = 0.5
     
     # Generación del grafo del almacén
     graph = funTFG.GraphGen(n, m, k, d)
@@ -25,8 +25,9 @@ if __name__ == "__main__":
     media = sum(max_occupation_array)/time
     print(max_occupation_array,media)
     
-    
+
     # Visualización
+    
     funTFG.playback_simulation(graph, simulation_data, dt=tsam)
 
     

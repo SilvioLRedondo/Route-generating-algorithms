@@ -140,8 +140,8 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
     max_occupation_array = []
     flujo_paquetes = 1
     sd = .5
-    f_min = flujo_paquetes-sd
-    f_max = flujo_paquetes+sd  
+    f_min =0.25 #flujo_paquetes-sd
+    f_max =0.5 #flujo_paquetes+sd  
 
 
     nodo_q1 = next(node for node in graph.nodes if node.nombre == "q1")
