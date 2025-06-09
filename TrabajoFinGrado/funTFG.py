@@ -167,10 +167,23 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
 
     while current_time < total_time:
 
-         # 1) REINICIAR LA OCUPACIÓN DE TODAS LAS ARISTAS A 0
+         # 1) REINICIAR LA OCUPACIÓN DE TODAS LAS ARISTAS 
         for u, v, data in graph.edges(data=True):
             data["objeto_arista"].ocupacion = 0
         
+        # Contabilizar robots que ya estaban recorriendo una arista en el paso
+        # anterior para que su ocupación se tenga en cuenta a la hora de decidir
+        # si otros robots pueden entrar en la misma.
+        for robot in robots:
+            if (
+                robot.path
+                and robot.current_edge_index < len(robot.path) - 1
+                and robot.progress_along_edge > 0
+            ):
+                start_node = robot.path[robot.current_edge_index]
+                end_node = robot.path[robot.current_edge_index + 1]
+                arista = graph[start_node][end_node]["objeto_arista"]
+                arista.ocupacion += 1
         # Gestión dinámica de llegada y salida de paquetes
         proxima_recepcion -= dt
         proxima_emision -= dt
@@ -188,26 +201,72 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
         gestor_robots.asignar_tareas(gestor_paquetes)
 
         for robot in robots:
-            # Movimiento continuo
+            if robot.estado == 'critico':
+                continue
+            # Movimiento continuo con control de capacidad en las aristas
             if robot.path and robot.current_edge_index < len(robot.path) - 1:
                 start_node = robot.path[robot.current_edge_index]
                 end_node = robot.path[robot.current_edge_index + 1]
-                dx, dy = end_node.posicion[0] - start_node.posicion[0], end_node.posicion[1] - start_node.posicion[1]
+                arista = graph[start_node][end_node]["objeto_arista"]
+                dx = end_node.posicion[0] - start_node.posicion[0]
+                dy = end_node.posicion[1] - start_node.posicion[1]
                 segment_distance = math.hypot(dx, dy)
                 move_distance = speed * dt
                 remaining_distance = segment_distance - robot.progress_along_edge
 
+                # Si el robot va a entrar en una arista, comprobar si hay hueco
+                if robot.progress_along_edge == 0:
+                    if arista.ocupacion >= arista.capacidad:
+                        # Intentar calcular un camino alternativo evitando aristas llenas
+                        blocked = [
+                            (u, v)
+                            for u, v, d in graph.edges(data=True)
+                            if d["objeto_arista"].ocupacion >= d["objeto_arista"].capacidad
+                        ]
+                        temp_g = graph.copy()
+                        temp_g.remove_edges_from(blocked)
+                        nuevo_camino = (
+                            a_star_search(temp_g, start_node, robot.target)
+                            if robot.target
+                            else []
+                        )
+                        if nuevo_camino and len(nuevo_camino) > 1:
+                            alt_start = nuevo_camino[0]
+                            alt_next = nuevo_camino[1]
+                            alt_arista = graph[alt_start][alt_next]["objeto_arista"]
+                            if alt_arista.ocupacion < alt_arista.capacidad:
+                                robot.path = nuevo_camino
+                                robot.current_edge_index = 0
+                                start_node = alt_start
+                                end_node = alt_next
+                                arista = alt_arista
+                                dx = end_node.posicion[0] - start_node.posicion[0]
+                                dy = end_node.posicion[1] - start_node.posicion[1]
+                                segment_distance = math.hypot(dx, dy)
+                                remaining_distance = segment_distance
+                            else:
+                                continue
+                        else:
+                            continue
+                    # Reserva la arista para este robot
+                    arista.ocupacion += 1
+
+
                 if move_distance < remaining_distance:
                     robot.progress_along_edge += move_distance
                     alpha = robot.progress_along_edge / segment_distance
-                    new_pos = (start_node.posicion[0] + alpha * dx,
-                               start_node.posicion[1] + alpha * dy)
-                    robot.continuous_position = new_pos
+                    robot.continuous_position = (
+                        start_node.posicion[0] + alpha * dx,
+                        start_node.posicion[1] + alpha * dy,
+                    )
+                    distancia = move_distance
                 else:
                     robot.position = end_node
                     robot.continuous_position = end_node.posicion
                     robot.current_edge_index += 1
                     robot.progress_along_edge = 0.0
+                    distancia = remaining_distance
+                robot.consumir_energia(distancia, robot.paquete_actual.peso if robot.paquete_actual else 0)
 
             # Lógica cuando el robot llega a un destino
             if robot.target and robot.position == robot.target:
@@ -247,17 +306,6 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
         for robot in robots:
             if robot.paquete_actual:
                 robot.paquete_actual.posicion = robot.continuous_position
-
-        # CONTAR OCUPACIÓN DE CADA ARISTA:
-        # SUMAR +1 AL ATRIBUTO "OCUPACION" DE LA ARISTA QUE ESTÁN CRUZANDO
-        for robot in robots:
-            # Revisa si el robot no ha llegado al último nodo de su path
-            if robot.path and robot.current_edge_index < (len(robot.path) - 1):
-                start_node = robot.path[robot.current_edge_index]
-                end_node = robot.path[robot.current_edge_index + 1]
-                # Ubica la arista en el grafo y suma 1
-                arista = graph[start_node][end_node]["objeto_arista"]
-                arista.ocupacion += 1
 
         # BUSCAR LA OCUPACIÓN MÁXIMA DE LAS ARISTAS Y GUARDARLA EN max_occupation_array
         max_occupancy = 0

@@ -112,6 +112,15 @@ class Robot:
         self.progress_along_edge = 0.0
         self.paquete_actual = None
 
+    
+    def consumir_energia(self, dist, peso=0):
+        """Reduce la autonomía del robot en función de la distancia recorrida
+        y el peso transportado."""
+        consumo = dist + peso * 0.1
+        self.autonomia = max(self.autonomia - consumo, 0)
+        if self.autonomia <= 20:
+            self.set_estado('critico')
+
     def set_target(self, target):
         self.target = target
 
