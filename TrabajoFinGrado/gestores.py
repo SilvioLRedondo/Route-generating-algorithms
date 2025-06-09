@@ -1,4 +1,4 @@
-from algoritmos import a_star_search
+from algoritmos import a_star_search, a_star_with_reservations
 from Clases import Paquete
 import random
 
@@ -9,10 +9,27 @@ class GestionRobots:
         self.nodo_q2 = nodo_q2
         self.graph = graph
 
+    def plan_route(self, robot, current_time, reservations):
+        """Plan and reserve a route for the robot using time aware A*."""
+        if robot.target is None:
+            return False
+        path, times = a_star_with_reservations(self.graph, robot.position, robot.target, current_time, reservations)
+        if path:
+            robot.path = path
+            robot.edge_times = times
+            robot.current_edge_index = 0
+            robot.progress_along_edge = 0.0
+            reservations.reserve_path(robot.id, path, current_time)
+            return True
+        robot.path = []
+        robot.edge_times = []
+        return False
+
     def recogida(self, robot):
         robot.set_estado('recogida')
         robot.set_target(self.nodo_q1)
-        robot.path = a_star_search(self.graph, robot.position, robot.target)
+        robot.path = []
+        robot.edge_times = []
         robot.current_edge_index = 0
         robot.progress_along_edge = 0.0
         # print(f"[RECOGIDA] Robot {robot.id} enviado a q1.")
@@ -20,7 +37,8 @@ class GestionRobots:
     def almacenamiento(self, robot, destino):
         robot.set_estado('almacenamiento')
         robot.set_target(destino)
-        robot.path = a_star_search(self.graph, robot.position, destino)
+        robot.path = []
+        robot.edge_times = []
         robot.current_edge_index = 0
         robot.progress_along_edge = 0.0
         # print(f"[ALMACENAMIENTO] Robot {robot.id} enviado al estante {destino.nombre}.")
@@ -29,6 +47,7 @@ class GestionRobots:
         robot.set_estado('espera')
         robot.set_target(None)
         robot.path = []
+        robot.edge_times = []
         robot.current_edge_index = 0
         robot.progress_along_edge = 0.0
         # print(f"[ESPERA] Robot {robot.id} en espera en posición actual.")
@@ -36,7 +55,8 @@ class GestionRobots:
     def buscar(self, robot, nodo_paquete):
         robot.set_estado('buscar')
         robot.set_target(nodo_paquete)
-        robot.path = a_star_search(self.graph, robot.position, nodo_paquete)
+        robot.path = []
+        robot.edge_times = []
         robot.current_edge_index = 0
         robot.progress_along_edge = 0.0
         # print(f"[BUSCAR] Robot {robot.id} buscando paquete en {nodo_paquete.nombre}.")
@@ -44,7 +64,8 @@ class GestionRobots:
     def salida(self, robot):
         robot.set_estado('salida')
         robot.set_target(self.nodo_q2)
-        robot.path = a_star_search(self.graph, robot.position, self.nodo_q2)
+        robot.path = []
+        robot.edge_times = []
         robot.current_edge_index = 0
         robot.progress_along_edge = 0.0
         # print(f"[SALIDA] Robot {robot.id} llevando paquete a q2.")

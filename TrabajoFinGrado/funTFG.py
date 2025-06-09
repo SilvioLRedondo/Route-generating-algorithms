@@ -2,9 +2,9 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import random
 import math
-from algoritmos import a_star_search
-from Clases import Nodo,Arista,Robot,Paquete
-from gestores import GestionRobots,GestionPaquetes
+from Clases import Nodo, Arista, Robot, Paquete
+from gestores import GestionRobots, GestionPaquetes
+from reservations import EdgeReservations
 
 def GraphGen(n, m, k, d):
     """
@@ -150,6 +150,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
     # Inicializar gestores
     gestor_paquetes = GestionPaquetes()
     gestor_robots = GestionRobots(robots, nodo_q1, nodo_q2, graph)
+    reservations = EdgeReservations()
 
     # Inicializar temporizadores para recepción y emisión
     proxima_recepcion = random.uniform(f_min+1, f_max+1) # lowest and highest
@@ -162,6 +163,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
         robot.estado = 'espera'
         robot.target = None
         robot.path = []
+        robot.edge_times = []
         robot.current_edge_index = 0
         robot.progress_along_edge = 0.0
 
@@ -203,54 +205,30 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
         for robot in robots:
             if robot.estado == 'critico':
                 continue
-            # Movimiento continuo con control de capacidad en las aristas
+
+            # Plan route if at node without a planned path
+            if (not robot.path or robot.current_edge_index >= len(robot.path) - 1) and robot.target and robot.position != robot.target:
+                if not gestor_robots.plan_route(robot, int(current_time / dt), reservations):
+                    gestor_robots.espera(robot)
+                    continue
+
             if robot.path and robot.current_edge_index < len(robot.path) - 1:
                 start_node = robot.path[robot.current_edge_index]
                 end_node = robot.path[robot.current_edge_index + 1]
                 arista = graph[start_node][end_node]["objeto_arista"]
+                scheduled_time = robot.edge_times[robot.current_edge_index]
+
+                if int(current_time / dt) < scheduled_time:
+                    continue
+
                 dx = end_node.posicion[0] - start_node.posicion[0]
                 dy = end_node.posicion[1] - start_node.posicion[1]
                 segment_distance = math.hypot(dx, dy)
                 move_distance = speed * dt
                 remaining_distance = segment_distance - robot.progress_along_edge
 
-                # Si el robot va a entrar en una arista, comprobar si hay hueco
                 if robot.progress_along_edge == 0:
-                    if arista.ocupacion >= arista.capacidad:
-                        # Intentar calcular un camino alternativo evitando aristas llenas
-                        blocked = [
-                            (u, v)
-                            for u, v, d in graph.edges(data=True)
-                            if d["objeto_arista"].ocupacion >= d["objeto_arista"].capacidad
-                        ]
-                        temp_g = graph.copy()
-                        temp_g.remove_edges_from(blocked)
-                        nuevo_camino = (
-                            a_star_search(temp_g, start_node, robot.target)
-                            if robot.target
-                            else []
-                        )
-                        if nuevo_camino and len(nuevo_camino) > 1:
-                            alt_start = nuevo_camino[0]
-                            alt_next = nuevo_camino[1]
-                            alt_arista = graph[alt_start][alt_next]["objeto_arista"]
-                            if alt_arista.ocupacion < alt_arista.capacidad:
-                                robot.path = nuevo_camino
-                                robot.current_edge_index = 0
-                                start_node = alt_start
-                                end_node = alt_next
-                                arista = alt_arista
-                                dx = end_node.posicion[0] - start_node.posicion[0]
-                                dy = end_node.posicion[1] - start_node.posicion[1]
-                                segment_distance = math.hypot(dx, dy)
-                                remaining_distance = segment_distance
-                            else:
-                                continue
-                        else:
-                            continue
-                    # Reserva la arista para este robot
                     arista.ocupacion += 1
-
 
                 if move_distance < remaining_distance:
                     robot.progress_along_edge += move_distance
@@ -266,6 +244,8 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                     robot.current_edge_index += 1
                     robot.progress_along_edge = 0.0
                     distancia = remaining_distance
+                    reservations.release_before(int(current_time / dt))
+
                 robot.consumir_energia(distancia, robot.paquete_actual.peso if robot.paquete_actual else 0)
 
             # Lógica cuando el robot llega a un destino

@@ -111,6 +111,7 @@ class Robot:
         self.current_edge_index = 0
         self.progress_along_edge = 0.0
         self.paquete_actual = None
+        self.edge_times = []
 
     
     def consumir_energia(self, dist, peso=0):
