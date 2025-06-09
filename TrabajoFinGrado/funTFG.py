@@ -6,7 +6,7 @@ from Clases import Nodo, Arista, Robot, Paquete
 from gestores import GestionRobots, GestionPaquetes
 from reservations import EdgeReservations
 
-def GraphGen(n, m, k, d):
+def GraphGen(n, m, k, d, rs_rate=1):
     """
     Crea un grafo que representa un almacén.
     """
@@ -24,8 +24,14 @@ def GraphGen(n, m, k, d):
     # Nodos de entrada y salida
     nodo_q1 = Nodo(nombre="q1", posicion=(medio, -1), peso=1, altura=2)
     nodo_q2 = Nodo(nombre="q2", posicion=(medio, m), peso=1, altura=2)
+    nodo_rs1 = Nodo(nombre="RS_1", posicion=(medio, -2), estacion=True, recharge_rate=rs_rate)
+    nodo_rs2 = Nodo(nombre="RS_2", posicion=(medio, m + 1), estacion=True, recharge_rate=rs_rate)
     G.add_node(nodo_q1)
     G.add_node(nodo_q2)
+    G.add_node(nodo_rs1)
+    G.add_node(nodo_rs2)
+    G.add_edge(nodo_rs1, nodo_q1, objeto_arista=Arista(nodo_rs1, nodo_q1, peso=2, tipo="pasillo", capacidad=2))
+    G.add_edge(nodo_rs2, nodo_q2, objeto_arista=Arista(nodo_rs2, nodo_q2, peso=2, tipo="pasillo", capacidad=2))
 
     # Distribución de ubicaciones en hileras
     ubicaciones_por_hilera = [k // n] * n
@@ -202,13 +208,26 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
         # Asignar tareas dinámicamente a robots
         gestor_robots.asignar_tareas(gestor_paquetes)
 
+        obstacles = {r.position for r in robots if r.estado == 'exhausto'}
+
         for robot in robots:
-            if robot.estado == 'critico':
+            if robot.estado == 'exhausto':
                 continue
+            if robot.estado == 'recargando':
+                robot.recargar(robot.position.recharge_rate)
+                if robot.autonomia >= 100:
+                    robot.paquete_actual = None
+                    robot.destino_final = None
+                    gestor_robots.espera(robot)
+                continue
+            if robot.estado == 'critico' and not getattr(robot.target, 'estacion', False):
+                if not gestor_robots.puede_completar_tarea(robot, obstacles):
+                    station = gestor_robots.nearest_station(robot.position, obstacles)
+                    gestor_robots.enviar_a_estacion(robot, station)
 
             # Plan route if at node without a planned path
             if (not robot.path or robot.current_edge_index >= len(robot.path) - 1) and robot.target and robot.position != robot.target:
-                if not gestor_robots.plan_route(robot, int(current_time / dt), reservations):
+                if not gestor_robots.plan_route(robot, int(current_time / dt), reservations, obstacles):
                     gestor_robots.espera(robot)
                     continue
 
@@ -250,6 +269,9 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
 
             # Lógica cuando el robot llega a un destino
             if robot.target and robot.position == robot.target:
+                if getattr(robot.target, 'estacion', False):
+                    gestor_robots.iniciar_recarga(robot)
+                    continue
                 if robot.estado == 'recogida' and robot.position == nodo_q1:
                     robot.paquete_actual.posicion = robot.continuous_position
                     paquetes_visuales.append(robot.paquete_actual)
@@ -264,7 +286,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                         robot.destino_final = None
                         gestor_robots.espera(robot)
                     except:
-                        gestor_robots.reasignacion(robot, gestor_paquetes, paquetes_visuales)
+                        gestor_robots.reasignacion(robot, gestor_paquetes, paquetes_visuales, obstacles)
                     
 
                 elif robot.estado == 'buscar':
@@ -303,7 +325,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
 
         # Snapshot visual
         snapshot = {
-            'robots': {robot.id: robot.continuous_position for robot in robots},
+            'robots': {robot.id: (robot.continuous_position, robot.estado) for robot in robots},
             'paquetes': [p.posicion for p in paquetes_visuales],
             'almacenamiento': estado_almacenamiento
         }
@@ -324,9 +346,16 @@ def playback_simulation(graph, simulation_data, dt=0.1):
         ax.clear()
         nx.draw(graph, pos, with_labels=True, node_size=400, node_color="lightgray", ax=ax)
 
-        # Robots en rojo
-        robot_positions = list(snapshot['robots'].values())
-        ax.scatter(*zip(*robot_positions), color="red", s=750, label="Robots")
+        robot_positions = [pos for pos, _ in snapshot['robots'].values()]
+        robot_colors = []
+        for _, estado in snapshot['robots'].values():
+            if estado == 'exhausto':
+                robot_colors.append('black')
+            elif estado in ['critico', 'recargando']:
+                robot_colors.append('yellow')
+            else:
+                robot_colors.append('red')
+        ax.scatter(*zip(*robot_positions), color=robot_colors, s=750, label="Robots")
 
         # Paquetes en azul
         paquete_positions = snapshot['paquetes']

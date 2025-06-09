@@ -1,7 +1,9 @@
 import heapq
 
 
-def a_star_search(graph, start, goal):
+def a_star_search(graph, start, goal, obstacles=None):
+    if obstacles is None:
+        obstacles = set()
     queue = []
     heapq.heappush(queue, (0, start))
     came_from = {start: None}
@@ -12,6 +14,8 @@ def a_star_search(graph, start, goal):
         if current == goal:
             break
         for neighbor in graph.neighbors(current):
+            if neighbor in obstacles:
+                continue
             arista = graph[current][neighbor]['objeto_arista']
             new_cost = cost_so_far[current] + arista.get_peso() + arista.longitud()
             if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
@@ -30,7 +34,9 @@ def a_star_search(graph, start, goal):
     return path[::-1]
 
 
-def a_star_with_reservations(graph, start, goal, start_time, reservations):
+def a_star_with_reservations(graph, start, goal, start_time, reservations, obstacles=None):
+    if obstacles is None:
+        obstacles = set()
     """A* search that avoids edges reserved at specific times."""
     start_state = (start, start_time)
     frontier = []
@@ -44,6 +50,8 @@ def a_star_with_reservations(graph, start, goal, start_time, reservations):
             goal_state = (current_node, current_time)
             break
         for neighbor in graph.neighbors(current_node):
+            if neighbor in obstacles:
+                continue
             arista = graph[current_node][neighbor]['objeto_arista']
             next_time = current_time + 1
             if not reservations.is_available((current_node, neighbor), next_time, arista.capacidad):

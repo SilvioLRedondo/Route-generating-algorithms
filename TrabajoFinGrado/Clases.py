@@ -1,12 +1,15 @@
 import random
 
 class Nodo:
-    def __init__(self, nombre, posicion, peso=None, altura=None, estante=None):
+    def __init__(self, nombre, posicion, peso=None, altura=None, estante=None,
+                 estacion=False, recharge_rate=1):
         self.nombre = nombre
         self.posicion = posicion
         self.peso = peso
         self.altura = altura
         self.estante = estante
+        self.estacion = estacion
+        self.recharge_rate = recharge_rate
         self.almacenamiento = None  # (producto, cantidad)
 
     def __hash__(self):
@@ -104,7 +107,7 @@ class Robot:
         self.distance = 0
         self.capacidad_carga = 0
         self.autonomia = 100
-        self.estado = 'espera'  # recogida, almacenamiento, espera, buscar, salida
+        self.estado = 'espera'  # recogida, almacenamiento, espera, buscar, salida, critico, recargando, exhausto
         # self.disponible = True
         self.continuous_position = None
         self.path = []
@@ -119,8 +122,17 @@ class Robot:
         y el peso transportado."""
         consumo = dist + peso * 0.1
         self.autonomia = max(self.autonomia - consumo, 0)
-        if self.autonomia <= 20:
+        if self.autonomia <= 0:
+            self.autonomia = 0
+            self.set_estado('exhausto')
+        elif self.autonomia <= 20:
             self.set_estado('critico')
+
+    def recargar(self, cantidad):
+        """Aumenta la autonomía del robot hasta un máximo de 100."""
+        if self.estado not in ['recargando', 'critico', 'espera']:
+            return
+        self.autonomia = min(self.autonomia + cantidad, 100)
 
     def set_target(self, target):
         self.target = target
@@ -146,7 +158,7 @@ class Robot:
         return f"Robot {self.id}"
     
     def set_estado(self, nuevo_estado):
-        estados_validos = ['recogida', 'almacenamiento', 'espera', 'buscar', 'salida','critico']
+        estados_validos = ['recogida', 'almacenamiento', 'espera', 'buscar', 'salida', 'critico', 'recargando', 'exhausto']
         if nuevo_estado in estados_validos:
             self.estado = nuevo_estado
         else:

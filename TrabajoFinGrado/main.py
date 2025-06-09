@@ -9,9 +9,10 @@ if __name__ == "__main__":
     tsam = 0.1
     total_simulation_time = 500
     carga_inicial = 0.5
+    recharge_rate = 1
     
     # Generación del grafo del almacén
-    graph = funTFG.GraphGen(n, m, k, d)
+    graph = funTFG.GraphGen(n, m, k, d, rs_rate=recharge_rate)
 
     # Inicialización aleatoria del almacén 
     funTFG.inicializar_almacen(graph, carga_inicial)
