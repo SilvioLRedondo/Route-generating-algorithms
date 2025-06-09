@@ -286,7 +286,14 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                         robot.destino_final = None
                         gestor_robots.espera(robot)
                     except:
-                        gestor_robots.reasignacion(robot, gestor_paquetes, paquetes_visuales, obstacles)
+                        gestor_robots.reasignacion(
+                            robot,
+                            gestor_paquetes,
+                            paquetes_visuales,
+                            int(current_time / dt),
+                            reservations,
+                            obstacles,
+                        )
                     
 
                 elif robot.estado == 'buscar':

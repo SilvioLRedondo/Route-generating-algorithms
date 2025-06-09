@@ -230,11 +230,12 @@ class GestionRobots:
         return paquetes_almacenados / capacidad_total
 
 
-    def reasignacion(self, robot, gestor_paquetes, paquetes_visuales, obstacles=None):
-        """
-        Tras fallar al almacenar un paquete (producto distinto o estante lleno),
-        este método busca un estante alternativo. 
-        Si no hay ninguno, el paquete se devuelve a la cola de recepción.
+    def reasignacion(self, robot, gestor_paquetes, paquetes_visuales, current_time, reservations, obstacles=None):
+        """Reasigna el objetivo de ``robot`` a otro estante disponible.
+
+        ``current_time`` indica el instante actual y ``reservations`` gestiona las
+        reservas de aristas. Se utiliza una planificación con tiempo para evitar
+        problemas de rutas sin ``edge_times`` cuando el robot cambia de destino.
         """
         # 1) Identificamos el producto que lleva el robot
         producto = robot.paquete_actual.producto
@@ -265,13 +266,11 @@ class GestionRobots:
         # 4) Si encontramos un estante alternativo, reasignamos el robot a ese nuevo destino
         # print(f"[REASIGNACIÓN] Se reasigna el robot {robot.id} al estante '{destino_alternativo.nombre}'.")
 
-        # Preparamos el robot para ir al nuevo objetivo
+        # Preparamos el robot para ir al nuevo objetivo y calcular su ruta
+        # Utilizamos plan_route para reservar la ruta con conocimiento temporal
+        # evitando así que se generen "edge_times" vacíos.
         robot.target = destino_alternativo
-        # Recalculamos la ruta al estante alternativo con A*
-        from algoritmos import a_star_search
-        robot.path = a_star_search(self.graph, robot.position, destino_alternativo, obstacles)
-        robot.current_edge_index = 0
-        robot.progress_along_edge = 0.0
+        self.plan_route(robot, current_time, reservations, obstacles)
 
         # Mantenemos o reestablecemos el robot en estado 'almacenamiento' para que
         # cuando llegue al destino, vuelva a ejecutar el mismo bloque de "almacenamiento"
