@@ -8,12 +8,13 @@ class GestionRobots:
         self.nodo_q1 = nodo_q1
         self.nodo_q2 = nodo_q2
         self.graph = graph
+        self.estaciones = [n for n in graph.nodes if getattr(n, 'estacion', False)]
 
-    def plan_route(self, robot, current_time, reservations):
+    def plan_route(self, robot, current_time, reservations, obstacles=None):
         """Plan and reserve a route for the robot using time aware A*."""
         if robot.target is None:
             return False
-        path, times = a_star_with_reservations(self.graph, robot.position, robot.target, current_time, reservations)
+        path, times = a_star_with_reservations(self.graph, robot.position, robot.target, current_time, reservations, obstacles)
         if path:
             robot.path = path
             robot.edge_times = times
@@ -150,6 +151,34 @@ class GestionRobots:
                             continue
 
 
+    def nearest_station(self, position, obstacles=None):
+        return min(self.estaciones, key=lambda s: len(a_star_search(self.graph, position, s, obstacles)))
+
+    def puede_completar_tarea(self, robot, obstacles=None):
+        if robot.target is None:
+            return True
+        path = a_star_search(self.graph, robot.position, robot.target, obstacles)
+        dist = len(path) - 1
+        if robot.destino_final and robot.destino_final != robot.target:
+            path2 = a_star_search(self.graph, robot.target, robot.destino_final, obstacles)
+            dist += len(path2) - 1
+        return robot.autonomia >= dist
+
+    def enviar_a_estacion(self, robot, station):
+        robot.set_estado('critico')
+        robot.set_target(station)
+        robot.path = []
+        robot.edge_times = []
+        robot.current_edge_index = 0
+        robot.progress_along_edge = 0.0
+
+    def iniciar_recarga(self, robot):
+        robot.set_estado('recargando')
+        robot.path = []
+        robot.edge_times = []
+        robot.current_edge_index = 0
+        robot.progress_along_edge = 0.0
+
     def estante_mas_libre(self, producto):
         candidatos = [
             node for node in self.graph.nodes 
@@ -201,7 +230,7 @@ class GestionRobots:
         return paquetes_almacenados / capacidad_total
 
 
-    def reasignacion(self, robot, gestor_paquetes, paquetes_visuales):
+    def reasignacion(self, robot, gestor_paquetes, paquetes_visuales, obstacles=None):
         """
         Tras fallar al almacenar un paquete (producto distinto o estante lleno),
         este método busca un estante alternativo. 
@@ -240,7 +269,7 @@ class GestionRobots:
         robot.target = destino_alternativo
         # Recalculamos la ruta al estante alternativo con A*
         from algoritmos import a_star_search
-        robot.path = a_star_search(self.graph, robot.position, destino_alternativo)
+        robot.path = a_star_search(self.graph, robot.position, destino_alternativo, obstacles)
         robot.current_edge_index = 0
         robot.progress_along_edge = 0.0
 
