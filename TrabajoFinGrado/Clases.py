@@ -1,3 +1,4 @@
+import random
 
 class Nodo:
     def __init__(self, nombre, posicion, peso=None, altura=None, estante=None):
@@ -53,7 +54,7 @@ class Nodo:
             self.almacenamiento = None
         else:
             self.almacenamiento = (producto, cantidad - 1)
-        return Paquete(producto)
+        return Paquete(producto=producto, peso=random.uniform(1, 10))
     
 
     def esta_vacio(self):
@@ -157,9 +158,10 @@ class Paquete:
         "Otro"
     ]
 
-    def __init__(self, producto=None, posicion=None):
+    def __init__(self, producto=None, posicion=None, peso = None):
         self.producto = producto if producto else "Otro"
         self.posicion = posicion
+        self.peso = peso if peso is not None else random.uniform(1, 10)
 
 
     @property
@@ -181,7 +183,7 @@ class Paquete:
 
     def __str__(self):
         """Representación en string del paquete."""
-        return f"Paquete que contiene: {self.producto}"
+        return f"Paquete que contiene: {self.producto} (peso: {self.peso:.2f})"
 
     @classmethod
     def mostrar_productos_disponibles(cls):

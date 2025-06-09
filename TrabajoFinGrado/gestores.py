@@ -239,7 +239,7 @@ class GestionPaquetes:
         Genera un paquete aleatorio para recepción en q1.
         """
         producto = random.choice(Paquete.productos_disponibles)
-        paquete = Paquete(producto=producto)
+        paquete = Paquete(producto=producto, peso=random.uniform(1, 10))
         self.cola_recepcion.append(paquete)
         # print(f"[RECEPCIÓN] Nuevo paquete recibido: {paquete.producto}")
 
@@ -261,7 +261,7 @@ class GestionPaquetes:
         producto, cantidad = estante_elegido.almacenamiento
 
         # Crear paquete solicitado para emisión
-        paquete_solicitado = Paquete(producto=producto)
+        paquete_solicitado = Paquete(producto=producto, peso=random.uniform(1, 10))
         self.cola_emision.append((paquete_solicitado, estante_elegido))
         # print(f"[EMISIÓN] Solicitado paquete '{producto}' desde estante {estante_elegido.nombre}")
 

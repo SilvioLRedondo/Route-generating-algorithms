@@ -17,6 +17,10 @@ def a_star_search(graph, start, goal):
                 cost_so_far[neighbor] = new_cost
                 heapq.heappush(queue, (new_cost, neighbor))
                 came_from[neighbor] = current
+    
+    if goal not in came_from:
+        # Si no se encontró ruta posible devolvemos una lista vacía
+        return []
 
     path = []
     node = goal
