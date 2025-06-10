@@ -30,8 +30,13 @@ class GestionRobots:
             robot.edge_times = times
             robot.current_edge_index = 0
             robot.progress_along_edge = 0.0
-            reservations.reserve_path(robot.id, path, current_time)
-            return True
+            if reservations.reserve_path(robot.id, path, current_time, self.graph):
+                return True
+            robot.path = []
+            robot.edge_times = []
+            robot.current_edge_index = 0
+            robot.progress_along_edge = 0.0
+            return False
         robot.path = []
         robot.edge_times = []
         return False

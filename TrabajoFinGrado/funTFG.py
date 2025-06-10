@@ -243,7 +243,10 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                 arista = graph[start_node][end_node]["objeto_arista"]
                 scheduled_time = robot.edge_times[robot.current_edge_index]
 
-                if int(current_time / dt) < scheduled_time:
+                if (
+                    int(current_time / dt) < scheduled_time
+                    or arista.ocupacion >= arista.capacidad
+                ):
                     continue
 
                 dx = end_node.posicion[0] - start_node.posicion[0]
