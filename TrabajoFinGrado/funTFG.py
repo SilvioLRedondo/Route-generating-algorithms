@@ -265,7 +265,12 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                     distancia = remaining_distance
                     reservations.release_before(int(current_time / dt))
 
-                robot.consumir_energia(distancia, robot.paquete_actual.peso if robot.paquete_actual else 0)
+                robot.consumir_energia(
+                    distancia,
+                    robot.paquete_actual.peso if robot.paquete_actual else 0,
+                    last_node=start_node,
+                    next_node=end_node,
+                )
 
             # Lógica cuando el robot llega a un destino
             if robot.target and robot.position == robot.target:
