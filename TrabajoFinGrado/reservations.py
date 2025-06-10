@@ -16,14 +16,34 @@ class EdgeReservations:
         reserved = times.get(time_step, [])
         return len(reserved) < capacity
 
-    def reserve_path(self, robot_id, path, start_time, capacity=2):
-        """Reserve consecutive edges of ``path`` starting at ``start_time``."""
+    def reserve_path(self, robot_id, path, start_time, graph=None, capacity=2):
+        """Reserve consecutive edges of ``path`` starting at ``start_time``.
+
+        If ``graph`` is provided the capacity of each edge is taken from the
+        graph's ``objeto_arista.capacidad`` attribute. Otherwise ``capacity`` is
+        used as a uniform limit.
+
+        Returns ``True`` if all reservations succeed. If any edge/time slot is
+        already at capacity the method leaves existing reservations untouched and
+        returns ``False``.
+        """
         time = start_time
+        pending = []
         for i in range(len(path) - 1):
             edge = (path[i], path[i + 1])
             key = self._edge_key(edge)
-            self.reservations.setdefault(key, {}).setdefault(time, []).append(robot_id)
+            self.reservations.setdefault(key, {})
+            edge_capacity = capacity
+            if graph is not None and graph.has_edge(*edge):
+                edge_capacity = graph[edge[0]][edge[1]]["objeto_arista"].capacidad
+            if len(self.reservations[key].get(time, [])) >= edge_capacity:
+                return False
+            pending.append((key, time))
             time += 1
+
+        for key, t in pending:
+            self.reservations[key].setdefault(t, []).append(robot_id)
+        return True
 
     def release_before(self, time_step):
         """Remove reservations for times older than ``time_step``."""
