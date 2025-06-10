@@ -172,6 +172,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
         robot.edge_times = []
         robot.current_edge_index = 0
         robot.progress_along_edge = 0.0
+        robot.recharge_pending = False
 
     while current_time < total_time:
 
@@ -220,10 +221,15 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                     robot.destino_final = None
                     gestor_robots.espera(robot)
                 continue
-            if robot.estado == 'critico' and not getattr(robot.target, 'estacion', False):
-                if not gestor_robots.puede_completar_tarea(robot, obstacles):
+            if robot.estado == 'critico':
+                if getattr(robot.target, 'estacion', False):
+                    pass
+                elif robot.progress_along_edge == 0:
                     station = gestor_robots.nearest_station(robot.position, obstacles)
                     gestor_robots.enviar_a_estacion(robot, station)
+                    robot.recharge_pending = False
+                else:
+                    robot.recharge_pending = True
 
             # Plan route if at node without a planned path
             if (not robot.path or robot.current_edge_index >= len(robot.path) - 1) and robot.target and robot.position != robot.target:

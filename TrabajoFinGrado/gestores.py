@@ -51,6 +51,7 @@ class GestionRobots:
         robot.edge_times = []
         robot.current_edge_index = 0
         robot.progress_along_edge = 0.0
+        robot.recharge_pending = False
         # print(f"[ESPERA] Robot {robot.id} en espera en posición actual.")
 
     def buscar(self, robot, nodo_paquete):
@@ -170,7 +171,7 @@ class GestionRobots:
         robot.path = []
         robot.edge_times = []
         robot.current_edge_index = 0
-        robot.progress_along_edge = 0.0
+        robot.recharge_pending = False
 
     def iniciar_recarga(self, robot):
         robot.set_estado('recargando')
@@ -178,6 +179,7 @@ class GestionRobots:
         robot.edge_times = []
         robot.current_edge_index = 0
         robot.progress_along_edge = 0.0
+        robot.recharge_pending = False
 
     def estante_mas_libre(self, producto):
         candidatos = [
