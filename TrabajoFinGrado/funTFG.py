@@ -353,6 +353,8 @@ def playback_simulation(graph, simulation_data, dt=0.1):
     pos = {node: node.posicion for node in graph.nodes()}
 
     for snapshot in simulation_data:
+        if not plt.fignum_exists(fig.number):
+            break
         ax.clear()
         nx.draw(graph, pos, with_labels=True, node_size=400, node_color="lightgray", ax=ax)
 
@@ -385,6 +387,7 @@ def playback_simulation(graph, simulation_data, dt=0.1):
         plt.pause(dt)
 
     plt.ioff()
+    plt.close(fig)
     plt.show()
 
 
