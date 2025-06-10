@@ -100,7 +100,7 @@ class Arista:
 
 
 class Robot:
-    def __init__(self, id, position):
+    def __init__(self, id, position, consumo=1):
         self.id = id
         self.position = position
         self.target = None
@@ -116,13 +116,17 @@ class Robot:
         self.paquete_actual = None
         self.edge_times = []
         self.recharge_pending = False
+        self.consumo = consumo
 
     
     def consumir_energia(self, dist, peso=0):
-        """Reduce la autonomía del robot en función de la distancia recorrida
-        y el peso transportado."""
-        consumo = dist + peso * 0.1
-        self.autonomia = max(self.autonomia - consumo, 0)
+        """Consume energía en función de ``self.consumo``.
+
+        Los parámetros ``dist`` y ``peso`` se mantienen por compatibilidad
+        pero el consumo final depende únicamente del valor configurable
+        ``self.consumo``.
+        """
+        self.autonomia = max(self.autonomia - self.consumo, 0)
         if self.autonomia <= 0:
             self.autonomia = 0
             self.set_estado('exhausto')

@@ -129,12 +129,12 @@ def inicializar_almacen(graph, carga_inicial):
 
 
 
-def create_robots(num_robots, graph):
+def create_robots(num_robots, graph, consumo_robot=1):
     nodes = list(graph.nodes())
     robots = []
     for i in range(num_robots):
         start_node = random.choice(nodes)
-        robot = Robot(id=i + 1, position=start_node)
+        robot = Robot(id=i + 1, position=start_node, consumo=consumo_robot)
         robots.append(robot)
     return robots
 

@@ -6,6 +6,7 @@ from funAuxTFG import guardar_informacion,cargar_informacion
 if __name__ == "__main__":
     n, m, k, d = 4, 4, 16, 1
     num_robots = 8
+    consumo_robot = 1
     tsam = 0.1
     total_simulation_time = 500
     carga_inicial = 0.5
@@ -18,7 +19,7 @@ if __name__ == "__main__":
     funTFG.inicializar_almacen(graph, carga_inicial)
 
     # Crear robots
-    robots = funTFG.create_robots(num_robots, graph)
+    robots = funTFG.create_robots(num_robots, graph, consumo_robot=consumo_robot)
 
     # Simulación completa 
     simulation_data,max_occupation_array = funTFG.simulate_robots_continuous(graph, robots, total_simulation_time, dt=tsam, speed=1)
