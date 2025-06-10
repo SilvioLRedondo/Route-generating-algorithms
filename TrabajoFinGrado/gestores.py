@@ -157,42 +157,12 @@ class GestionRobots:
     def puede_completar_tarea(self, robot, obstacles=None):
         if robot.target is None:
             return True
-
-        if obstacles is None:
-            obstacles = set()
-
-        # ----- calculate remaining distance from current position to task target
         path = a_star_search(self.graph, robot.position, robot.target, obstacles)
-        if not path:
-            return False
-
-        total_distance = 0.0
-        edge_count = 0
-
-        for i in range(len(path) - 1):
-            edge = self.graph[path[i]][path[i + 1]]["objeto_arista"]
-            length = edge.longitud()
-            # subtract progress already made on the first edge
-            if i == 0 and robot.progress_along_edge > 0:
-                length = max(0.0, length - robot.progress_along_edge)
-            total_distance += length
-            edge_count += 1
-
-        # ----- if there is a final destination after the task, add that segment
+        dist = len(path) - 1
         if robot.destino_final and robot.destino_final != robot.target:
             path2 = a_star_search(self.graph, robot.target, robot.destino_final, obstacles)
-            if not path2:
-                return False
-            for i in range(len(path2) - 1):
-                edge = self.graph[path2[i]][path2[i + 1]]["objeto_arista"]
-                total_distance += edge.longitud()
-                edge_count += 1
-
-        payload_weight = robot.paquete_actual.peso if robot.paquete_actual else 0
-        # energy = distance + cost per edge based on payload weight
-        required_energy = total_distance + (edge_count * payload_weight * 0.1)
-
-        return robot.autonomia >= required_energy
+            dist += len(path2) - 1
+        return robot.autonomia >= dist
 
     def enviar_a_estacion(self, robot, station):
         robot.set_estado('critico')
