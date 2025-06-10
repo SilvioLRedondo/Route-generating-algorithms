@@ -14,7 +14,17 @@ class GestionRobots:
         """Plan and reserve a route for the robot using time aware A*."""
         if robot.target is None:
             return False
-        path, times = a_star_with_reservations(self.graph, robot.position, robot.target, current_time, reservations, obstacles)
+        # 1) Release old reservations for this robot
+        reservations.release_robot(robot.id)
+        # 2) Plan a new route
+        path, times = a_star_with_reservations(
+            self.graph,
+            robot.position,
+            robot.target,
+            current_time,
+            reservations,
+            obstacles,
+        )
         if path:
             robot.path = path
             robot.edge_times = times

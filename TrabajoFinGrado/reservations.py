@@ -34,3 +34,15 @@ class EdgeReservations:
                     del times[t]
             if not times:
                 del self.reservations[key]
+
+    def release_robot(self, robot_id):
+        """Remove all reservations made by ``robot_id``."""
+        for key in list(self.reservations.keys()):
+            times = self.reservations[key]
+            for t in list(times.keys()):
+                if robot_id in times[t]:
+                    times[t].remove(robot_id)
+                if not times[t]:
+                    del times[t]
+            if not times:
+                del self.reservations[key]
