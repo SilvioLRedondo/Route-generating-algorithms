@@ -117,24 +117,15 @@ class Robot:
         self.edge_times = []
 
     
-    def consumir_energia(self, dist, peso=0, last_node=None, next_node=None):
+    def consumir_energia(self, dist, peso=0):
         """Reduce la autonomía del robot en función de la distancia recorrida
-        y el peso transportado. Cuando la autonomía cae por debajo del 20%%,
-        el robot pasa a estado crítico y se imprime información de depuración.
-        """
+        y el peso transportado."""
         consumo = dist + peso * 0.1
         self.autonomia = max(self.autonomia - consumo, 0)
         if self.autonomia <= 0:
             self.autonomia = 0
             self.set_estado('exhausto')
         elif self.autonomia <= 20 and self.estado != 'critico':
-            debug_info = {
-                'robot_id': self.id,
-                'autonomy': self.autonomia,
-                'last_node': last_node,
-                'next_node': next_node,
-            }
-            print(debug_info)
             self.set_estado('critico')
 
     def recargar(self, cantidad):
