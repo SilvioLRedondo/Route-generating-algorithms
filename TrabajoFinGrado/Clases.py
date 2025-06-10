@@ -115,6 +115,7 @@ class Robot:
         self.progress_along_edge = 0.0
         self.paquete_actual = None
         self.edge_times = []
+        self.recharge_pending = False
 
     
     def consumir_energia(self, dist, peso=0):
@@ -127,6 +128,8 @@ class Robot:
             self.set_estado('exhausto')
         elif self.autonomia <= 20 and self.estado != 'critico':
             self.set_estado('critico')
+            if self.progress_along_edge > 0:
+                self.recharge_pending = True
 
     def recargar(self, cantidad):
         """Aumenta la autonomía del robot hasta un máximo de 100."""
