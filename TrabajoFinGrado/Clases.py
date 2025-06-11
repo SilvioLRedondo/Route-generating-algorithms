@@ -117,6 +117,7 @@ class Robot:
         self.edge_times = []
         self.recharge_pending = False
         self.consumo = consumo
+        self.stuck_counter = 0
 
     
     def consumir_energia(self, dist, peso=0):
