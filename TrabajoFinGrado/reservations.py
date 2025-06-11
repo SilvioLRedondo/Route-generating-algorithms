@@ -7,7 +7,7 @@ class EdgeReservations:
 
     def _edge_key(self, edge):
         u, v = edge
-        return (u, v)
+        return tuple(sorted((u, v)))
 
     def is_available(self, edge, time_step, capacity=2):
         """Return True if the edge is free at the given time step."""

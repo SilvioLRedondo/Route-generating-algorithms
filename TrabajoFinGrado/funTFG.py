@@ -140,6 +140,7 @@ def create_robots(num_robots, graph, consumo_robot=1):
 
 
 def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
+    STUCK_LIMIT = 10
     simulation_data = []
     paquetes_visuales = []
     current_time = 0.0
@@ -173,6 +174,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
         robot.current_edge_index = 0
         robot.progress_along_edge = 0.0
         robot.recharge_pending = False
+        robot.stuck_counter = 0
 
     while current_time < total_time:
 
@@ -245,8 +247,21 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
 
                 if (
                     int(current_time / dt) < scheduled_time
-                    or arista.ocupacion >= arista.capacidad
+                    or (
+                        robot.progress_along_edge == 0
+                        and arista.ocupacion >= arista.capacidad
+                    )
                 ):
+                    robot.stuck_counter += 1
+                    if robot.stuck_counter >= STUCK_LIMIT:
+                        reservations.release_robot(robot.id)
+                        gestor_robots.plan_route(
+                            robot,
+                            int(current_time / dt),
+                            reservations,
+                            obstacles,
+                        )
+                        robot.stuck_counter = 0
                     continue
 
                 dx = end_node.posicion[0] - start_node.posicion[0]
@@ -266,6 +281,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                         start_node.posicion[1] + alpha * dy,
                     )
                     distancia = move_distance
+                    robot.stuck_counter = 0
                 else:
                     robot.position = end_node
                     robot.continuous_position = end_node.posicion
@@ -273,6 +289,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                     robot.progress_along_edge = 0.0
                     distancia = remaining_distance
                     reservations.release_before(int(current_time / dt))
+                    robot.stuck_counter = 0
 
                 robot.consumir_energia(
                     distancia,
