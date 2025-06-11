@@ -9,6 +9,7 @@ class Actividad(Enum):
     BUSCAR = "buscar"
     SALIDA = "salida"
     RECARGA = "recarga"
+    DIRIGIENDOSE_A_RS = "dirigiendose_a_rs"
 
 
 class NivelBateria(Enum):
@@ -19,7 +20,7 @@ class NivelBateria(Enum):
 
 class Nodo:
     def __init__(self, nombre, posicion, peso=None, altura=None, estante=None,
-                 estacion=False, recharge_rate=1):
+                 estacion=False, recharge_rate=0):
         self.nombre = nombre
         self.posicion = posicion
         self.peso = peso
@@ -207,7 +208,7 @@ class Robot:
     def pausar_tarea(self):
         self.actividad_prevista = self.actividad
         self.target_previsto = self.target
-        self.set_actividad(Actividad.RECARGA.value)
+        self.set_actividad(Actividad.DIRIGIENDOSE_A_RS.value)
         self.target = None
         self.path = []
         self.edge_times = []
