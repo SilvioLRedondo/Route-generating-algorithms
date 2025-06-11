@@ -211,6 +211,13 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
             gestor_paquetes.emision(estantes)
             proxima_emision = random.uniform(f_min, f_max)
 
+        obstacles = {r.position for r in robots if r.nivel_bateria == NivelBateria.AGOTADO.value}
+
+        for robot in robots:
+            if robot.actividad == Actividad.ESPERA.value and robot.nivel_bateria == NivelBateria.LIMITADO.value:
+                station = gestor_robots.nearest_station(robot.position, obstacles)
+                gestor_robots.enviar_a_estacion(robot, station)
+
         # Asignar tareas dinámicamente a robots
         gestor_robots.asignar_tareas(gestor_paquetes)
 
@@ -219,7 +226,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
         for robot in robots:
             if robot.nivel_bateria == NivelBateria.AGOTADO.value:
                 continue
-            if robot.actividad == Actividad.RECARGA.value:
+            if robot.actividad == Actividad.RECARGA.value and getattr(robot.position, "estacion", False):
                 robot.recargar(robot.position.recharge_rate)
                 continue
             if robot.nivel_bateria == NivelBateria.CRITICO.value:
