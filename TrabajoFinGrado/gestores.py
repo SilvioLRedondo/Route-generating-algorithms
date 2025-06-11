@@ -1,5 +1,5 @@
 from algoritmos import a_star_search, a_star_with_reservations
-from Clases import Paquete
+from Clases import Paquete, Actividad, NivelBateria
 import random
 
 class GestionRobots:
@@ -42,7 +42,7 @@ class GestionRobots:
         return False
 
     def recogida(self, robot):
-        robot.set_estado('recogida')
+        robot.set_actividad(Actividad.RECOGIDA.value)
         robot.set_target(self.nodo_q1)
         robot.path = []
         robot.edge_times = []
@@ -51,7 +51,7 @@ class GestionRobots:
         # print(f"[RECOGIDA] Robot {robot.id} enviado a q1.")
 
     def almacenamiento(self, robot, destino):
-        robot.set_estado('almacenamiento')
+        robot.set_actividad(Actividad.ALMACENAMIENTO.value)
         robot.set_target(destino)
         robot.path = []
         robot.edge_times = []
@@ -60,7 +60,7 @@ class GestionRobots:
         # print(f"[ALMACENAMIENTO] Robot {robot.id} enviado al estante {destino.nombre}.")
 
     def espera(self, robot):
-        robot.set_estado('espera')
+        robot.set_actividad(Actividad.ESPERA.value)
         robot.set_target(None)
         robot.path = []
         robot.edge_times = []
@@ -70,7 +70,7 @@ class GestionRobots:
         # print(f"[ESPERA] Robot {robot.id} en espera en posición actual.")
 
     def buscar(self, robot, nodo_paquete):
-        robot.set_estado('buscar')
+        robot.set_actividad(Actividad.BUSCAR.value)
         robot.set_target(nodo_paquete)
         robot.path = []
         robot.edge_times = []
@@ -79,7 +79,7 @@ class GestionRobots:
         # print(f"[BUSCAR] Robot {robot.id} buscando paquete en {nodo_paquete.nombre}.")
 
     def salida(self, robot):
-        robot.set_estado('salida')
+        robot.set_actividad(Actividad.SALIDA.value)
         robot.set_target(self.nodo_q2)
         robot.path = []
         robot.edge_times = []
@@ -97,8 +97,10 @@ class GestionRobots:
         umbral = 0.7
 
         for robot in self.robots:
-            # Atendemos solo robots disponibles (estado 'espera' o sin target)
-            if robot.estado == 'espera' or robot.target is None:
+            if robot.nivel_bateria != NivelBateria.OPERATIVO.value:
+                continue
+            # Atendemos solo robots disponibles (actividad 'espera' o sin target)
+            if robot.actividad == Actividad.ESPERA.value or robot.target is None:
 
                 if ocupacion < umbral:
                     # ------------------------------------------
@@ -181,7 +183,8 @@ class GestionRobots:
         return robot.autonomia >= dist
 
     def enviar_a_estacion(self, robot, station):
-        robot.set_estado('critico')
+        robot.set_nivel_bateria(NivelBateria.CRITICO.value)
+        robot.pausar_tarea()
         robot.set_target(station)
         robot.path = []
         robot.edge_times = []
@@ -189,7 +192,7 @@ class GestionRobots:
         robot.recharge_pending = False
 
     def iniciar_recarga(self, robot):
-        robot.set_estado('recargando')
+        robot.set_actividad(Actividad.RECARGA.value)
         robot.path = []
         robot.edge_times = []
         robot.current_edge_index = 0
@@ -276,7 +279,7 @@ class GestionRobots:
             robot.path = []
             robot.current_edge_index = 0
             robot.progress_along_edge = 0.0
-            robot.set_estado('espera')
+            robot.set_actividad(Actividad.ESPERA.value)
 
             return  # fin de reasignacion
 
@@ -291,7 +294,7 @@ class GestionRobots:
 
         # Mantenemos o reestablecemos el robot en estado 'almacenamiento' para que
         # cuando llegue al destino, vuelva a ejecutar el mismo bloque de "almacenamiento"
-        robot.set_estado('almacenamiento')
+        robot.set_actividad(Actividad.ALMACENAMIENTO.value)
 
 
 

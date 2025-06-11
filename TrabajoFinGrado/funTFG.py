@@ -2,7 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import random
 import math
-from Clases import Nodo, Arista, Robot, Paquete
+from Clases import Nodo, Arista, Robot, Paquete, Actividad, NivelBateria
 from gestores import GestionRobots, GestionPaquetes
 from reservations import EdgeReservations
 
@@ -167,7 +167,10 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
     for robot in robots:
         robot.continuous_position = robot.position.posicion
         robot.paquete_actual = None
-        robot.estado = 'espera'
+        robot.actividad = Actividad.ESPERA.value
+        robot.nivel_bateria = NivelBateria.OPERATIVO.value
+        robot.actividad_prevista = None
+        robot.target_previsto = None
         robot.target = None
         robot.path = []
         robot.edge_times = []
@@ -211,19 +214,15 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
         # Asignar tareas dinámicamente a robots
         gestor_robots.asignar_tareas(gestor_paquetes)
 
-        obstacles = {r.position for r in robots if r.estado == 'exhausto'}
+        obstacles = {r.position for r in robots if r.nivel_bateria == NivelBateria.AGOTADO.value}
 
         for robot in robots:
-            if robot.estado == 'exhausto':
+            if robot.nivel_bateria == NivelBateria.AGOTADO.value:
                 continue
-            if robot.estado == 'recargando':
+            if robot.actividad == Actividad.RECARGA.value:
                 robot.recargar(robot.position.recharge_rate)
-                if robot.autonomia >= 100:
-                    robot.paquete_actual = None
-                    robot.destino_final = None
-                    gestor_robots.espera(robot)
                 continue
-            if robot.estado == 'critico':
+            if robot.nivel_bateria == NivelBateria.CRITICO.value:
                 if getattr(robot.target, 'estacion', False):
                     pass
                 elif robot.progress_along_edge == 0:
@@ -301,14 +300,13 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                 if getattr(robot.target, 'estacion', False):
                     gestor_robots.iniciar_recarga(robot)
                     continue
-                if robot.estado == 'recogida' and robot.position == nodo_q1:
+                if robot.actividad == Actividad.RECOGIDA.value and robot.position == nodo_q1:
                     robot.paquete_actual.posicion = robot.continuous_position
                     paquetes_visuales.append(robot.paquete_actual)
                     gestor_robots.almacenamiento(robot, robot.destino_final)
-                  
 
-                elif robot.estado == 'almacenamiento':
-                    try:    
+                elif robot.actividad == Actividad.ALMACENAMIENTO.value:
+                    try:
                         robot.position.añadir_paquete(robot.paquete_actual)
                         paquetes_visuales.remove(robot.paquete_actual)
                         robot.paquete_actual = None
@@ -323,9 +321,8 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                             reservations,
                             obstacles,
                         )
-                    
 
-                elif robot.estado == 'buscar':
+                elif robot.actividad == Actividad.BUSCAR.value:
                     paquete_recogido = robot.position.retirar_paquete()
                     if paquete_recogido:
                         robot.paquete_actual = paquete_recogido
@@ -333,7 +330,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                         paquetes_visuales.append(robot.paquete_actual)
                     gestor_robots.salida(robot)
 
-                elif robot.estado == 'salida' and robot.position == nodo_q2:
+                elif robot.actividad == Actividad.SALIDA.value and robot.position == nodo_q2:
                     if robot.paquete_actual in paquetes_visuales:
                         paquetes_visuales.remove(robot.paquete_actual)
                     robot.paquete_actual = None
@@ -361,7 +358,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
 
         # Snapshot visual
         snapshot = {
-            'robots': {robot.id: (robot.continuous_position, robot.estado) for robot in robots},
+            'robots': {robot.id: (robot.continuous_position, robot.nivel_bateria) for robot in robots},
             'paquetes': [p.posicion for p in paquetes_visuales],
             'almacenamiento': estado_almacenamiento
         }
@@ -386,11 +383,13 @@ def playback_simulation(graph, simulation_data, dt=0.1):
 
         robot_positions = [pos for pos, _ in snapshot['robots'].values()]
         robot_colors = []
-        for _, estado in snapshot['robots'].values():
-            if estado == 'exhausto':
+        for _, nivel in snapshot['robots'].values():
+            if nivel == NivelBateria.AGOTADO.value:
                 robot_colors.append('black')
-            elif estado in ['critico', 'recargando']:
+            elif nivel == NivelBateria.CRITICO.value:
                 robot_colors.append('yellow')
+            elif nivel == NivelBateria.LIMITADO.value:
+                robot_colors.append('orange')
             else:
                 robot_colors.append('red')
         ax.scatter(*zip(*robot_positions), color=robot_colors, s=750, label="Robots")

@@ -1,4 +1,21 @@
 import random
+from enum import Enum
+
+
+class Actividad(Enum):
+    RECOGIDA = "recogida"
+    ALMACENAMIENTO = "almacenamiento"
+    ESPERA = "espera"
+    BUSCAR = "buscar"
+    SALIDA = "salida"
+    RECARGA = "recarga"
+
+
+class NivelBateria(Enum):
+    OPERATIVO = "operativo"
+    LIMITADO = "limitado"
+    CRITICO = "critico"
+    AGOTADO = "agotado"
 
 class Nodo:
     def __init__(self, nombre, posicion, peso=None, altura=None, estante=None,
@@ -107,7 +124,10 @@ class Robot:
         self.distance = 0
         self.capacidad_carga = 0
         self.autonomia = 100
-        self.estado = 'espera'  # recogida, almacenamiento, espera, buscar, salida, critico, recargando, exhausto
+        self.actividad = Actividad.ESPERA.value
+        self.nivel_bateria = NivelBateria.OPERATIVO.value
+        self.actividad_prevista = None
+        self.target_previsto = None
         # self.disponible = True
         self.continuous_position = None
         self.path = []
@@ -130,17 +150,16 @@ class Robot:
         self.autonomia = max(self.autonomia - self.consumo, 0)
         if self.autonomia <= 0:
             self.autonomia = 0
-            self.set_estado('exhausto')
-        elif self.autonomia <= 20 and self.estado != 'critico':
-            self.set_estado('critico')
-            if self.progress_along_edge > 0:
-                self.recharge_pending = True
+        self._actualizar_nivel_bateria()
 
     def recargar(self, cantidad):
         """Aumenta la autonomía del robot hasta un máximo de 100."""
-        if self.estado not in ['recargando', 'critico', 'espera']:
+        if self.actividad != Actividad.RECARGA.value:
             return
         self.autonomia = min(self.autonomia + cantidad, 100)
+        self._actualizar_nivel_bateria()
+        if self.autonomia >= 100 and self.nivel_bateria == NivelBateria.OPERATIVO.value:
+            self.reanudar_tarea()
 
     def set_target(self, target):
         self.target = target
@@ -164,13 +183,43 @@ class Robot:
 
     def __repr__(self):
         return f"Robot {self.id}"
-    
-    def set_estado(self, nuevo_estado):
-        estados_validos = ['recogida', 'almacenamiento', 'espera', 'buscar', 'salida', 'critico', 'recargando', 'exhausto']
-        if nuevo_estado in estados_validos:
-            self.estado = nuevo_estado
+
+    def _actualizar_nivel_bateria(self):
+        if self.autonomia <= 0:
+            self.nivel_bateria = NivelBateria.AGOTADO.value
+        elif self.autonomia <= 25:
+            self.nivel_bateria = NivelBateria.CRITICO.value
+        elif self.autonomia < 40:
+            self.nivel_bateria = NivelBateria.LIMITADO.value
         else:
-            raise ValueError(f"Estado '{nuevo_estado}' no válido. Usa {estados_validos}.")
+            self.nivel_bateria = NivelBateria.OPERATIVO.value
+
+    def set_actividad(self, nueva):
+        if nueva not in [a.value for a in Actividad]:
+            raise ValueError(f"Actividad '{nueva}' no válida")
+        self.actividad = nueva
+
+    def set_nivel_bateria(self, nuevo):
+        if nuevo not in [n.value for n in NivelBateria]:
+            raise ValueError(f"Nivel '{nuevo}' no válido")
+        self.nivel_bateria = nuevo
+
+    def pausar_tarea(self):
+        self.actividad_prevista = self.actividad
+        self.target_previsto = self.target
+        self.set_actividad(Actividad.RECARGA.value)
+        self.target = None
+        self.path = []
+        self.edge_times = []
+        self.current_edge_index = 0
+        self.progress_along_edge = 0.0
+
+    def reanudar_tarea(self):
+        if self.actividad_prevista is not None:
+            self.actividad = self.actividad_prevista
+            self.target = self.target_previsto
+            self.actividad_prevista = None
+            self.target_previsto = None
 
 
 class Paquete:
