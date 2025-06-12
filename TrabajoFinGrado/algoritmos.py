@@ -41,7 +41,18 @@ def a_star_search(graph, start, goal, obstacles=None):
     return path[::-1]
 
 
-def a_star_with_reservations(graph, start, goal, start_time, reservations, obstacles=None, max_horizon=None):
+def a_star_with_reservations(
+    graph,
+    start,
+    goal,
+    start_time,
+    edge_reservations,
+    hilera_reservations,
+    prioridad,
+    obstacles=None,
+    max_horizon=None,
+    max_hilera_h=None,
+):
     if obstacles is None:
         obstacles = set()
     """A* search that avoids edges reserved at specific times."""
@@ -63,10 +74,15 @@ def a_star_with_reservations(graph, start, goal, start_time, reservations, obsta
                 continue
             arista = graph[current_node][neighbor]['objeto_arista']
             next_time = current_time + 1
-            if not reservations.is_available((current_node, neighbor), next_time, arista.capacidad):
+            if not edge_reservations.is_available((current_node, neighbor), next_time, arista.capacidad):
                 continue
             if next_time - start_time > max_horizon:
                 continue
+            if current_node.posicion[0] == neighbor.posicion[0]:
+                if max_hilera_h is not None and next_time - start_time > max_hilera_h:
+                    continue
+                if not hilera_reservations.is_available(int(neighbor.posicion[0]), next_time, prioridad):
+                    continue
             next_state = (neighbor, next_time)
             new_cost = cost_so_far[(current_node, current_time)] + 1
             if next_state not in cost_so_far or new_cost < cost_so_far[next_state]:

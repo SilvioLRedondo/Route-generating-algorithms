@@ -1,5 +1,5 @@
 import random
-from enum import Enum
+from enum import Enum, IntEnum
 
 
 class Actividad(Enum):
@@ -17,6 +17,12 @@ class NivelBateria(Enum):
     LIMITADO = "limitado"
     CRITICO = "critico"
     AGOTADO = "agotado"
+
+
+class Prioridad(IntEnum):
+    NORMAL = 0
+    ALTA = 1
+    URGENTE = 2
 
 class Nodo:
     def __init__(self, nombre, posicion, peso=None, altura=None, estante=None,
@@ -127,6 +133,7 @@ class Robot:
         self.autonomia = 100
         self.actividad = Actividad.ESPERA.value
         self.nivel_bateria = NivelBateria.OPERATIVO.value
+        self.prioridad = Prioridad.NORMAL
         self.actividad_prevista = None
         self.target_previsto = None
         # self.disponible = True
@@ -187,13 +194,14 @@ class Robot:
 
     def _actualizar_nivel_bateria(self):
         if self.autonomia <= 0:
-            self.nivel_bateria = NivelBateria.AGOTADO.value
+            nivel = NivelBateria.AGOTADO.value
         elif self.autonomia <= 25:
-            self.nivel_bateria = NivelBateria.CRITICO.value
+            nivel = NivelBateria.CRITICO.value
         elif self.autonomia < 40:
-            self.nivel_bateria = NivelBateria.LIMITADO.value
+            nivel = NivelBateria.LIMITADO.value
         else:
-            self.nivel_bateria = NivelBateria.OPERATIVO.value
+            nivel = NivelBateria.OPERATIVO.value
+        self.set_nivel_bateria(nivel)
 
     def set_actividad(self, nueva):
         if nueva not in [a.value for a in Actividad]:
@@ -204,6 +212,12 @@ class Robot:
         if nuevo not in [n.value for n in NivelBateria]:
             raise ValueError(f"Nivel '{nuevo}' no válido")
         self.nivel_bateria = nuevo
+        if nuevo == NivelBateria.OPERATIVO.value:
+            self.prioridad = Prioridad.NORMAL
+        elif nuevo == NivelBateria.LIMITADO.value:
+            self.prioridad = Prioridad.ALTA
+        elif nuevo in (NivelBateria.CRITICO.value, NivelBateria.AGOTADO.value):
+            self.prioridad = Prioridad.URGENTE
 
     def pausar_tarea(self):
         self.actividad_prevista = self.actividad
