@@ -29,7 +29,7 @@ if __name__ == "__main__":
     hilera_reserv = HileraReservations(HILERA_DEFAULT_CAPACITY, HILERA_COLUMN_CAPACITY)
 
     # Simulación completa 
-    simulation_data, max_occupation_array = funTFG.simulate_robots_continuous(
+    simulation_data, max_occupation_array, tiempos_de_estados = funTFG.simulate_robots_continuous(
         graph,
         robots,
         total_simulation_time,
@@ -42,6 +42,7 @@ if __name__ == "__main__":
     time = len(max_occupation_array)
     media = sum(max_occupation_array)/time
     print(max_occupation_array,media)
+    print(tiempos_de_estados)
     
 
     # Visualización

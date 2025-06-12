@@ -157,7 +157,13 @@ def simulate_robots_continuous(
     flujo_paquetes = 1
     sd = .5
     f_min =0.25 #flujo_paquetes-sd
-    f_max =0.5 #flujo_paquetes+sd  
+    f_max =0.5 #flujo_paquetes+sd
+
+    tiempos_de_estados = {
+        'actividad': {a.value: 0.0 for a in Actividad},
+        'nivel_bateria': {n.value: 0.0 for n in NivelBateria},
+        'prioridad': {p.name: 0.0 for p in Prioridad},
+    }
 
 
     nodo_q1 = next(node for node in graph.nodes if node.nombre == "q1")
@@ -392,11 +398,20 @@ def simulate_robots_continuous(
         }
 
         simulation_data.append(snapshot)
+        for robot in robots:
+            tiempos_de_estados['actividad'][robot.actividad] += dt
+            tiempos_de_estados['nivel_bateria'][robot.nivel_bateria] += dt
+            tiempos_de_estados['prioridad'][robot.prioridad.name] += dt
         reservations.release_before(int(current_time / dt))
         hilera_reservations.release_before(int(current_time / dt))
         current_time += dt
 
-    return simulation_data,max_occupation_array
+    num_robots = len(robots)
+    for category in tiempos_de_estados.values():
+        for key in category:
+            category[key] /= num_robots
+
+    return simulation_data,max_occupation_array,tiempos_de_estados
                 
 
 
