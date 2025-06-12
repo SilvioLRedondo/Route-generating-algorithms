@@ -4,7 +4,7 @@ import random
 import math
 from Clases import Nodo, Arista, Robot, Paquete, Actividad, NivelBateria
 from gestores import GestionRobots, GestionPaquetes
-from reservations import EdgeReservations
+from reservations import EdgeReservations, HileraReservations
 
 def GraphGen(n, m, k, d, rs_rate=1):
     """
@@ -139,7 +139,16 @@ def create_robots(num_robots, graph, consumo_robot=1):
     return robots
 
 
-def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
+def simulate_robots_continuous(
+    graph,
+    robots,
+    total_time,
+    edge_reservations,
+    hilera_reservations,
+    max_hilera_h,
+    dt=0.1,
+    speed=1,
+):
     STUCK_LIMIT = 10
     simulation_data = []
     paquetes_visuales = []
@@ -156,8 +165,8 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
 
     # Inicializar gestores
     gestor_paquetes = GestionPaquetes()
-    gestor_robots = GestionRobots(robots, nodo_q1, nodo_q2, graph)
-    reservations = EdgeReservations()
+    gestor_robots = GestionRobots(robots, nodo_q1, nodo_q2, graph, hilera_reservations)
+    reservations = edge_reservations
 
     # Inicializar temporizadores para recepción y emisión
     proxima_recepcion = random.uniform(f_min+1, f_max+1) # lowest and highest
@@ -241,7 +250,14 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
 
             # Plan route if at node without a planned path
             if (not robot.path or robot.current_edge_index >= len(robot.path) - 1) and robot.target and robot.position != robot.target:
-                if not gestor_robots.plan_route(robot, int(current_time / dt), reservations, obstacles):
+                if not gestor_robots.plan_route(
+                    robot,
+                    int(current_time / dt),
+                    reservations,
+                    hilera_reservations,
+                    obstacles,
+                    max_hilera_h,
+                ):
                     gestor_robots.espera(robot)
                     continue
 
@@ -265,7 +281,9 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                             robot,
                             int(current_time / dt),
                             reservations,
+                            hilera_reservations,
                             obstacles,
+                            max_hilera_h,
                         )
                         robot.stuck_counter = 0
                     continue
@@ -295,6 +313,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                     robot.progress_along_edge = 0.0
                     distancia = remaining_distance
                     reservations.release_before(int(current_time / dt))
+                    hilera_reservations.release_before(int(current_time / dt))
                     robot.stuck_counter = 0
 
                 robot.consumir_energia(
@@ -326,7 +345,9 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                             paquetes_visuales,
                             int(current_time / dt),
                             reservations,
+                            hilera_reservations,
                             obstacles,
+                            max_hilera_h,
                         )
 
                 elif robot.actividad == Actividad.BUSCAR.value:
@@ -371,6 +392,8 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
         }
 
         simulation_data.append(snapshot)
+        reservations.release_before(int(current_time / dt))
+        hilera_reservations.release_before(int(current_time / dt))
         current_time += dt
 
     return simulation_data,max_occupation_array

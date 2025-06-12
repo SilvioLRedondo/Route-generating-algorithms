@@ -3,34 +3,49 @@ from Clases import Paquete, Actividad, NivelBateria
 import random
 
 class GestionRobots:
-    def __init__(self, robots, nodo_q1, nodo_q2, graph):
+    def __init__(self, robots, nodo_q1, nodo_q2, graph, hilera_reservations):
         self.robots = robots
         self.nodo_q1 = nodo_q1
         self.nodo_q2 = nodo_q2
         self.graph = graph
+        self.hilera_reservations = hilera_reservations
         self.estaciones = [n for n in graph.nodes if getattr(n, 'estacion', False)]
 
-    def plan_route(self, robot, current_time, reservations, obstacles=None):
+    def plan_route(
+        self,
+        robot,
+        current_time,
+        edge_reservations,
+        hilera_reservations,
+        obstacles=None,
+        max_hilera_h=None,
+    ):
         """Plan and reserve a route for the robot using time aware A*."""
         if robot.target is None:
             return False
         # 1) Release old reservations for this robot
-        reservations.release_robot(robot.id)
+        edge_reservations.release_robot(robot.id)
         # 2) Plan a new route
         path, times = a_star_with_reservations(
             self.graph,
             robot.position,
             robot.target,
             current_time,
-            reservations,
+            edge_reservations,
+            hilera_reservations,
+            robot.prioridad,
             obstacles,
+            max_hilera_h,
         )
         if path:
             robot.path = path
             robot.edge_times = times
             robot.current_edge_index = 0
             robot.progress_along_edge = 0.0
-            if reservations.reserve_path(robot.id, path, current_time, self.graph):
+            if edge_reservations.reserve_path(robot.id, path, current_time, self.graph):
+                times_nodes = [current_time] + times
+                for node, t in zip(path, times_nodes):
+                    hilera_reservations.reserve(int(node.posicion[0]), t, robot.id, robot.prioridad)
                 return True
             robot.path = []
             robot.edge_times = []
@@ -250,7 +265,17 @@ class GestionRobots:
         return paquetes_almacenados / capacidad_total
 
 
-    def reasignacion(self, robot, gestor_paquetes, paquetes_visuales, current_time, reservations, obstacles=None):
+    def reasignacion(
+        self,
+        robot,
+        gestor_paquetes,
+        paquetes_visuales,
+        current_time,
+        edge_reservations,
+        hilera_reservations,
+        obstacles=None,
+        max_hilera_h=None,
+    ):
         """Reasigna el objetivo de ``robot`` a otro estante disponible.
 
         ``current_time`` indica el instante actual y ``reservations`` gestiona las
@@ -290,7 +315,14 @@ class GestionRobots:
         # Utilizamos plan_route para reservar la ruta con conocimiento temporal
         # evitando así que se generen "edge_times" vacíos.
         robot.target = destino_alternativo
-        self.plan_route(robot, current_time, reservations, obstacles)
+        self.plan_route(
+            robot,
+            current_time,
+            edge_reservations,
+            hilera_reservations,
+            obstacles,
+            max_hilera_h,
+        )
 
         # Mantenemos o reestablecemos el robot en estado 'almacenamiento' para que
         # cuando llegue al destino, vuelva a ejecutar el mismo bloque de "almacenamiento"

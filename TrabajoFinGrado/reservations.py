@@ -1,3 +1,6 @@
+from Clases import Prioridad
+
+
 class EdgeReservations:
     """Manage reservations of edges over discrete time steps."""
 
@@ -66,3 +69,49 @@ class EdgeReservations:
                     del times[t]
             if not times:
                 del self.reservations[key]
+
+
+class HileraReservations:
+    """Manage time reservations for entire columns (hileras)."""
+
+    def __init__(self, default_capacity=1, capacities=None):
+        self.default_capacity = default_capacity
+        self.capacities = capacities or {}
+        # mapping column_id -> {time_step: [(robot_id, prioridad)]}
+        self.reservations = {}
+
+    def _capacity(self, column_id):
+        return self.capacities.get(column_id, self.default_capacity)
+
+    def is_available(self, column_id, time_step, prioridad):
+        times = self.reservations.get(column_id, {})
+        reserved = times.get(time_step, [])
+        if len(reserved) < self._capacity(column_id):
+            return True
+        if prioridad == Prioridad.URGENTE and reserved:
+            lowest = min(reserved, key=lambda x: x[1])
+            return lowest[1] < Prioridad.URGENTE
+        return False
+
+    def reserve(self, column_id, time_step, robot_id, prioridad):
+        times = self.reservations.setdefault(column_id, {})
+        slot = times.setdefault(time_step, [])
+        if len(slot) < self._capacity(column_id):
+            slot.append((robot_id, prioridad))
+            return None
+        if prioridad == Prioridad.URGENTE and slot:
+            lowest = min(slot, key=lambda x: x[1])
+            if lowest[1] < Prioridad.URGENTE:
+                slot.remove(lowest)
+                slot.append((robot_id, prioridad))
+                return lowest[0]
+        return False
+
+    def release_before(self, time_step):
+        for col in list(self.reservations.keys()):
+            times = self.reservations[col]
+            for t in list(times.keys()):
+                if t < time_step:
+                    del times[t]
+            if not times:
+                del self.reservations[col]

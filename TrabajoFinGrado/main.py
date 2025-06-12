@@ -1,5 +1,6 @@
 import funTFG
 from funAuxTFG import guardar_informacion,cargar_informacion
+from reservations import EdgeReservations, HileraReservations
 
 
 
@@ -11,6 +12,9 @@ if __name__ == "__main__":
     total_simulation_time = 100
     carga_inicial = 0.5
     recharge_rate = 1
+    MAX_HILERA_H = 20
+    HILERA_DEFAULT_CAPACITY = 2
+    HILERA_COLUMN_CAPACITY = {}
     
     # Generación del grafo del almacén
     graph = funTFG.GraphGen(n, m, k, d, rs_rate=recharge_rate)
@@ -21,8 +25,20 @@ if __name__ == "__main__":
     # Crear robots
     robots = funTFG.create_robots(num_robots, graph, consumo_robot=consumo_robot)
 
+    edge_reserv = EdgeReservations()
+    hilera_reserv = HileraReservations(HILERA_DEFAULT_CAPACITY, HILERA_COLUMN_CAPACITY)
+
     # Simulación completa 
-    simulation_data,max_occupation_array = funTFG.simulate_robots_continuous(graph, robots, total_simulation_time, dt=tsam, speed=1)
+    simulation_data, max_occupation_array = funTFG.simulate_robots_continuous(
+        graph,
+        robots,
+        total_simulation_time,
+        edge_reserv,
+        hilera_reserv,
+        MAX_HILERA_H,
+        dt=tsam,
+        speed=1,
+    )
     time = len(max_occupation_array)
     media = sum(max_occupation_array)/time
     print(max_occupation_array,media)
