@@ -2,7 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import random
 import math
-from Clases import Nodo, Arista, Robot, Paquete, Actividad, NivelBateria
+from Clases import Nodo, Arista, Robot, Paquete, Actividad, NivelBateria, Prioridad
 from gestores import GestionRobots, GestionPaquetes
 from reservations import EdgeReservations, HileraReservations
 
@@ -163,6 +163,27 @@ def simulate_robots_continuous(
         'actividad': {a.value: 0.0 for a in Actividad},
         'nivel_bateria': {n.value: 0.0 for n in NivelBateria},
         'prioridad': {p.name: 0.0 for p in Prioridad},
+        'contador_eventos': {
+            'recogida': 0,
+            'almacenamiento': 0,
+            'buscar': 0,
+            'salida': 0,
+            'replanificacion': 0,
+        },
+        'tiempo_eventos': {
+            'recogida': 0.0,
+            'almacenamiento': 0.0,
+            'buscar': 0.0,
+            'salida': 0.0,
+            'replanificacion': 0.0,
+        },
+        'completados_intervalo': {
+            'recogida': [],
+            'almacenamiento': [],
+            'buscar': [],
+            'salida': [],
+            'replanificacion': [],
+        }
     }
 
 
@@ -196,13 +217,14 @@ def simulate_robots_continuous(
 
     while current_time < total_time:
 
-         # 1) REINICIAR LA OCUPACIÓN DE TODAS LAS ARISTAS 
+         # 1) REINICIAR LA OCUPACIÓN DE TODAS LAS ARISTAS
         for u, v, data in graph.edges(data=True):
             data["objeto_arista"].ocupacion = 0
         
         # Contabilizar robots que ya estaban recorriendo una arista en el paso
         # anterior para que su ocupación se tenga en cuenta a la hora de decidir
         # si otros robots pueden entrar en la misma.
+        completados_step = {key: 0 for key in tiempos_de_estados['contador_eventos']}
         for robot in robots:
             if (
                 robot.path
@@ -336,6 +358,8 @@ def simulate_robots_continuous(
                     robot.paquete_actual.posicion = robot.continuous_position
                     paquetes_visuales.append(robot.paquete_actual)
                     gestor_robots.almacenamiento(robot, robot.destino_final)
+                    tiempos_de_estados['contador_eventos']['recogida'] += 1
+                    completados_step['recogida'] += 1
 
                 elif robot.actividad == Actividad.ALMACENAMIENTO.value:
                     try:
@@ -344,7 +368,34 @@ def simulate_robots_continuous(
                         robot.paquete_actual = None
                         robot.destino_final = None
                         gestor_robots.espera(robot)
+                        tiempos_de_estados['contador_eventos']['almacenamiento'] += 1
+                        completados_step['almacenamiento'] += 1
                     except:
+                        tiempos_de_estados['contador_eventos']['replanificacion'] += 1
+                        completados_step['replanificacion'] += 1
+                        gestor_robots.reasignacion(
+                            robot,
+                            gestor_paquetes,
+                            paquetes_visuales,
+                            int(current_time / dt),
+                            reservations,
+                            hilera_reservations,
+                            obstacles,
+                            max_hilera_h,
+                        )
+
+                elif robot.actividad == Actividad.REPLANIFICANDO.value:
+                    try:
+                        robot.position.añadir_paquete(robot.paquete_actual)
+                        paquetes_visuales.remove(robot.paquete_actual)
+                        robot.paquete_actual = None
+                        robot.destino_final = None
+                        gestor_robots.espera(robot)
+                        tiempos_de_estados['contador_eventos']['almacenamiento'] += 1
+                        completados_step['almacenamiento'] += 1
+                    except:
+                        tiempos_de_estados['contador_eventos']['replanificacion'] += 1
+                        completados_step['replanificacion'] += 1
                         gestor_robots.reasignacion(
                             robot,
                             gestor_paquetes,
@@ -363,6 +414,8 @@ def simulate_robots_continuous(
                         robot.paquete_actual.posicion = robot.continuous_position
                         paquetes_visuales.append(robot.paquete_actual)
                     gestor_robots.salida(robot)
+                    tiempos_de_estados['contador_eventos']['buscar'] += 1
+                    completados_step['buscar'] += 1
 
                 elif robot.actividad == Actividad.SALIDA.value and robot.position == nodo_q2:
                     if robot.paquete_actual in paquetes_visuales:
@@ -370,6 +423,8 @@ def simulate_robots_continuous(
                     robot.paquete_actual = None
                     robot.destino_final = None
                     gestor_robots.espera(robot)
+                    tiempos_de_estados['contador_eventos']['salida'] += 1
+                    completados_step['salida'] += 1
 
         # Actualizar posiciones visuales de los paquetes en movimiento
         for robot in robots:
@@ -402,14 +457,55 @@ def simulate_robots_continuous(
             tiempos_de_estados['actividad'][robot.actividad] += dt
             tiempos_de_estados['nivel_bateria'][robot.nivel_bateria] += dt
             tiempos_de_estados['prioridad'][robot.prioridad.name] += dt
+            if robot.actividad == Actividad.RECOGIDA.value:
+                tiempos_de_estados['tiempo_eventos']['recogida'] += dt
+            elif robot.actividad == Actividad.ALMACENAMIENTO.value:
+                tiempos_de_estados['tiempo_eventos']['almacenamiento'] += dt
+            elif robot.actividad == Actividad.BUSCAR.value:
+                tiempos_de_estados['tiempo_eventos']['buscar'] += dt
+            elif robot.actividad == Actividad.SALIDA.value:
+                tiempos_de_estados['tiempo_eventos']['salida'] += dt
+            elif robot.actividad == Actividad.REPLANIFICANDO.value:
+                tiempos_de_estados['tiempo_eventos']['replanificacion'] += dt
         reservations.release_before(int(current_time / dt))
         hilera_reservations.release_before(int(current_time / dt))
+        for key in tiempos_de_estados['completados_intervalo']:
+            tiempos_de_estados['completados_intervalo'][key].append(completados_step[key])
         current_time += dt
 
     num_robots = len(robots)
-    for category in tiempos_de_estados.values():
-        for key in category:
-            category[key] /= num_robots
+    # Normalizar tiempos de actividad según el número de eventos que los incluyen
+    actividad_event_map = {
+        Actividad.RECOGIDA.value: 'recogida',
+        Actividad.ALMACENAMIENTO.value: 'almacenamiento',
+        Actividad.BUSCAR.value: 'buscar',
+        Actividad.SALIDA.value: 'salida',
+        Actividad.REPLANIFICANDO.value: 'replanificacion',
+    }
+
+    for actividad, tiempo in list(tiempos_de_estados['actividad'].items()):
+        if actividad in actividad_event_map:
+            evento = actividad_event_map[actividad]
+            count = tiempos_de_estados['contador_eventos'][evento]
+            tiempos_de_estados['actividad'][actividad] = (
+                tiempo / count if count else 0.0
+            )
+        else:
+            tiempos_de_estados['actividad'][actividad] /= num_robots
+
+    tiempos_de_estados['tiempo_eventos_normalizado'] = {
+        e: (
+            tiempos_de_estados['tiempo_eventos'][e] / tiempos_de_estados['contador_eventos'][e]
+            if tiempos_de_estados['contador_eventos'][e] > 0
+            else 0.0
+        )
+        for e in tiempos_de_estados['contador_eventos']
+    }
+
+    for key in tiempos_de_estados['nivel_bateria']:
+        tiempos_de_estados['nivel_bateria'][key] /= num_robots
+    for key in tiempos_de_estados['prioridad']:
+        tiempos_de_estados['prioridad'][key] /= num_robots
 
     return simulation_data,max_occupation_array,tiempos_de_estados
                 

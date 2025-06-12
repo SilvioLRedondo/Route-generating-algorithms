@@ -10,6 +10,7 @@ class Actividad(Enum):
     SALIDA = "salida"
     RECARGA = "recarga"
     DIRIGIENDOSE_A_RS = "dirigiendose_a_rs"
+    REPLANIFICANDO = "replanificando"
 
 
 class NivelBateria(Enum):

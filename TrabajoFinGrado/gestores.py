@@ -324,9 +324,9 @@ class GestionRobots:
             max_hilera_h,
         )
 
-        # Mantenemos o reestablecemos el robot en estado 'almacenamiento' para que
-        # cuando llegue al destino, vuelva a ejecutar el mismo bloque de "almacenamiento"
-        robot.set_actividad(Actividad.ALMACENAMIENTO.value)
+        # El robot entra en fase de replanificación para que el tiempo
+        # dedicado a esta operación pueda contabilizarse de forma separada
+        robot.set_actividad(Actividad.REPLANIFICANDO.value)
 
 
 
