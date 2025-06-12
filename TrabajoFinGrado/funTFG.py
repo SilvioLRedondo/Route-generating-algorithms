@@ -148,7 +148,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
     flujo_paquetes = 1
     sd = .5
     f_min =0.25 #flujo_paquetes-sd
-    f_max =0.5 #flujo_paquetes+sd  
+    f_max =0.5 #flujo_paquetes+sd
 
 
     nodo_q1 = next(node for node in graph.nodes if node.nombre == "q1")
@@ -158,6 +158,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
     gestor_paquetes = GestionPaquetes()
     gestor_robots = GestionRobots(robots, nodo_q1, nodo_q2, graph)
     reservations = EdgeReservations()
+    total_steps = int(total_time / dt)
 
     # Inicializar temporizadores para recepción y emisión
     proxima_recepcion = random.uniform(f_min+1, f_max+1) # lowest and highest
@@ -223,6 +224,9 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
 
         obstacles = {r.position for r in robots if r.nivel_bateria == NivelBateria.AGOTADO.value}
 
+        current_step = int(current_time / dt)
+        remaining_steps = total_steps - current_step
+
         for robot in robots:
             if robot.nivel_bateria == NivelBateria.AGOTADO.value:
                 continue
@@ -241,7 +245,7 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
 
             # Plan route if at node without a planned path
             if (not robot.path or robot.current_edge_index >= len(robot.path) - 1) and robot.target and robot.position != robot.target:
-                if not gestor_robots.plan_route(robot, int(current_time / dt), reservations, obstacles):
+                if not gestor_robots.plan_route(robot, current_step, reservations, obstacles, max_horizon=remaining_steps):
                     gestor_robots.espera(robot)
                     continue
 
@@ -263,9 +267,10 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                         reservations.release_robot(robot.id)
                         gestor_robots.plan_route(
                             robot,
-                            int(current_time / dt),
+                            current_step,
                             reservations,
                             obstacles,
+                            max_horizon=remaining_steps,
                         )
                         robot.stuck_counter = 0
                     continue
@@ -324,7 +329,8 @@ def simulate_robots_continuous(graph, robots, total_time, dt=0.1, speed=1):
                             robot,
                             gestor_paquetes,
                             paquetes_visuales,
-                            int(current_time / dt),
+                            current_step,
+                            remaining_steps,
                             reservations,
                             obstacles,
                         )

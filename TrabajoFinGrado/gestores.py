@@ -10,7 +10,7 @@ class GestionRobots:
         self.graph = graph
         self.estaciones = [n for n in graph.nodes if getattr(n, 'estacion', False)]
 
-    def plan_route(self, robot, current_time, reservations, obstacles=None):
+    def plan_route(self, robot, current_time, reservations, obstacles=None, max_horizon=None):
         """Plan and reserve a route for the robot using time aware A*."""
         if robot.target is None:
             return False
@@ -24,6 +24,7 @@ class GestionRobots:
             current_time,
             reservations,
             obstacles,
+            max_horizon=max_horizon,
         )
         if path:
             robot.path = path
@@ -250,7 +251,7 @@ class GestionRobots:
         return paquetes_almacenados / capacidad_total
 
 
-    def reasignacion(self, robot, gestor_paquetes, paquetes_visuales, current_time, reservations, obstacles=None):
+    def reasignacion(self, robot, gestor_paquetes, paquetes_visuales, current_time, max_horizon, reservations, obstacles=None):
         """Reasigna el objetivo de ``robot`` a otro estante disponible.
 
         ``current_time`` indica el instante actual y ``reservations`` gestiona las
@@ -290,7 +291,7 @@ class GestionRobots:
         # Utilizamos plan_route para reservar la ruta con conocimiento temporal
         # evitando así que se generen "edge_times" vacíos.
         robot.target = destino_alternativo
-        self.plan_route(robot, current_time, reservations, obstacles)
+        self.plan_route(robot, current_time, reservations, obstacles, max_horizon=max_horizon)
 
         # Mantenemos o reestablecemos el robot en estado 'almacenamiento' para que
         # cuando llegue al destino, vuelva a ejecutar el mismo bloque de "almacenamiento"
