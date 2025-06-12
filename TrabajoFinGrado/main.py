@@ -6,9 +6,9 @@ from funAuxTFG import guardar_informacion,cargar_informacion
 if __name__ == "__main__":
     n, m, k, d = 4, 4, 16, 1
     num_robots = 8
-    consumo_robot = 1
+    consumo_robot = 0.5
     tsam = 0.1
-    total_simulation_time = 500
+    total_simulation_time = 100
     carga_inicial = 0.5
     recharge_rate = 1
     

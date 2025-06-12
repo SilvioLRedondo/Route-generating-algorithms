@@ -382,7 +382,9 @@ def playback_simulation(graph, simulation_data, dt=0.1):
     fig, ax = plt.subplots(figsize=(12,12))
     pos = {node: node.posicion for node in graph.nodes()}
 
-    for snapshot in simulation_data:
+    total_steps = len(simulation_data)
+
+    for step, snapshot in enumerate(simulation_data, start=1):
         if not plt.fignum_exists(fig.number):
             break
         ax.clear()
@@ -416,6 +418,18 @@ def playback_simulation(graph, simulation_data, dt=0.1):
                 ax.scatter(*posicion, s=400, facecolors='none', edgecolors='orange', linewidths=2, label="Estante parcial" if "Estante parcial" not in ax.get_legend_handles_labels()[1] else "")
 
         ax.legend(loc="upper left", fontsize=12, frameon=True)
+        
+        ax.text(
+            0.95,
+            0.01,
+            f"{step} / {total_steps}",
+            transform=ax.transAxes,
+            ha="right",
+            va="bottom",
+            fontsize=12,
+            bbox=dict(facecolor="white", alpha=0.8, edgecolor="none"),
+        )
+
         plt.pause(dt)
 
     plt.ioff()
