@@ -239,6 +239,7 @@ class Robot:
 
 class Paquete:
     # Lista de posibles productos predefinidos
+    _next_id = 1
     productos_disponibles = [
         "Libro",
         "Electrónico",
@@ -253,9 +254,15 @@ class Paquete:
     ]
 
     def __init__(self, producto=None, posicion=None, peso = None):
+        self.id = Paquete._next_id
+        Paquete._next_id += 1
         self.producto = producto if producto else "Otro"
         self.posicion = posicion
         self.peso = peso if peso is not None else random.uniform(1, 10)
+        # sellos de tiempo
+        self.created_at = None
+        self.picked_at = None
+        self.delivered_at = None
 
 
     @property

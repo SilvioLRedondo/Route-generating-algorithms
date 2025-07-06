@@ -19,8 +19,13 @@ class GestionRobots:
         hilera_reservations,
         obstacles=None,
         max_hilera_h=None,
+        metrics = None
     ):
         """Plan and reserve a route for the robot using time aware A*."""
+
+        if metrics is not None and current_time > 0:
+            metrics["replanifications"] += 1
+
         if robot.target is None:
             return False
         # 1) Release old reservations for this robot
@@ -275,6 +280,7 @@ class GestionRobots:
         hilera_reservations,
         obstacles=None,
         max_hilera_h=None,
+        metrics = None
     ):
         """Reasigna el objetivo de ``robot`` a otro estante disponible.
 
@@ -322,6 +328,7 @@ class GestionRobots:
             hilera_reservations,
             obstacles,
             max_hilera_h,
+            metrics,
         )
 
         # Mantenemos o reestablecemos el robot en estado 'almacenamiento' para que
@@ -335,12 +342,13 @@ class GestionPaquetes:
         self.cola_recepcion = []  # Paquetes que llegan a q1
         self.cola_emision = []    # Paquetes solicitados para salir por q2
 
-    def recepcion(self):
+    def recepcion(self, current_time):
         """
         Genera un paquete aleatorio para recepción en q1.
         """
         producto = random.choice(Paquete.productos_disponibles)
         paquete = Paquete(producto=producto, peso=random.uniform(1, 10))
+        paquete.created_at = current_time
         self.cola_recepcion.append(paquete)
         # print(f"[RECEPCIÓN] Nuevo paquete recibido: {paquete.producto}")
 

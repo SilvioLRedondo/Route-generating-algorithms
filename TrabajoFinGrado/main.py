@@ -1,12 +1,12 @@
 import funTFG
 from funAuxTFG import guardar_informacion,cargar_informacion
 from reservations import EdgeReservations, HileraReservations
-
+import plot_metrics as pm
 
 
 if __name__ == "__main__":
     n, m, k, d = 5, 6, 30, 1
-    num_robots = 1
+    num_robots = 10
     consumo_robot = 0.25
     tsam = 0.1
     total_simulation_time = 100
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     hilera_reserv = HileraReservations(HILERA_DEFAULT_CAPACITY, HILERA_COLUMN_CAPACITY)
 
     # Simulación completa 
-    simulation_data, max_occupation_array, tiempos_de_estados = funTFG.simulate_robots_continuous(
+    simulation_data, metrics = funTFG.simulate_robots_continuous(
         graph,
         robots,
         total_simulation_time,
@@ -39,15 +39,24 @@ if __name__ == "__main__":
         dt=tsam,
         speed=1,
     )
-    time = len(max_occupation_array)
-    media = sum(max_occupation_array)/time
-    print(max_occupation_array,media)
-    
-    tiempoActividad = tiempos_de_estados['actividad']
 
-    print(tiempoActividad)
+    time = len(metrics["max_corridor_occupancy"])
+    print("El tiempo es:", time)
+
+
+    # time = len(max_occupation_array)
+    # media = sum(max_occupation_array)/time
+    # print(max_occupation_array,media)
+    
+
+    # tiempoActividad = tiempos_de_estados['actividad']
+
+    # print(tiempoActividad)
 
     # Visualización
+    
+    pm.visualizar_metricas(metrics, dt=tsam, save_dir=None, show=True)
+
     
     funTFG.playback_simulation(graph, simulation_data, dt=tsam)
 

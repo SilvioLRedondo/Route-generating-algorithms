@@ -149,11 +149,27 @@ def simulate_robots_continuous(
     dt=0.1,
     speed=1,
 ):
+    
     STUCK_LIMIT = 10
+    metrics = {
+    "max_corridor_occupancy": [],
+    "robot_state_time": {a.value:0.0 for a in Actividad},
+    "battery_state_time": {n.value:0.0 for n in NivelBateria},
+    "priority_state_time": {p.name:0.0 for p in Prioridad},
+    "packet_transit_times": [],
+    "total_packets_processed": 0,
+    "blockages": {"count":0, "timestamps":[]},
+    "recharge_usage": {"count":0, "timestamps":[]},
+    "emission_events": 0,
+    "reception_events": 0,
+    "replanifications": 0
+}
+    sum_corridor_occupation = 0      # para % medio
+
     simulation_data = []
     paquetes_visuales = []
     current_time = 0.0
-    max_occupation_array = []
+    # max_occupation_array = []
     flujo_paquetes = 1
     sd = .5
     f_min =0.25 #flujo_paquetes-sd
@@ -165,7 +181,7 @@ def simulate_robots_continuous(
         'prioridad': {p.name: 0.0 for p in Prioridad},
     }
 
-
+   
     nodo_q1 = next(node for node in graph.nodes if node.nombre == "q1")
     nodo_q2 = next(node for node in graph.nodes if node.nombre == "q2")
 
@@ -218,12 +234,14 @@ def simulate_robots_continuous(
         proxima_emision -= dt
 
         if proxima_recepcion <= 0:
-            gestor_paquetes.recepcion()
+            gestor_paquetes.recepcion(current_time)
+            metrics["reception_events"] += 1
             proxima_recepcion = random.uniform(f_min+1, f_max+1)
 
         if proxima_emision <= 0:
             estantes = [node for node in graph.nodes if node.estante]
             gestor_paquetes.emision(estantes)
+            metrics["emission_events"] += 1
             proxima_emision = random.uniform(f_min, f_max)
 
         obstacles = {r.position for r in robots if r.nivel_bateria == NivelBateria.AGOTADO.value}
@@ -263,6 +281,7 @@ def simulate_robots_continuous(
                     hilera_reservations,
                     obstacles,
                     max_hilera_h,
+                    metrics
                 ):
                     gestor_robots.espera(robot)
                     continue
@@ -282,6 +301,8 @@ def simulate_robots_continuous(
                 ):
                     robot.stuck_counter += 1
                     if robot.stuck_counter >= STUCK_LIMIT:
+                        metrics["blockages"]["count"] += 1
+                        metrics["blockages"]["timestamps"].append(current_time)
                         reservations.release_robot(robot.id)
                         gestor_robots.plan_route(
                             robot,
@@ -290,6 +311,7 @@ def simulate_robots_continuous(
                             hilera_reservations,
                             obstacles,
                             max_hilera_h,
+                            metrics
                         )
                         robot.stuck_counter = 0
                     continue
@@ -331,6 +353,8 @@ def simulate_robots_continuous(
             if robot.target and robot.position == robot.target:
                 if getattr(robot.target, 'estacion', False):
                     gestor_robots.iniciar_recarga(robot)
+                    metrics["recharge_usage"]["count"] += 1
+                    metrics["recharge_usage"]["timestamps"].append(current_time)
                     continue
                 if robot.actividad == Actividad.RECOGIDA.value and robot.position == nodo_q1:
                     robot.paquete_actual.posicion = robot.continuous_position
@@ -341,6 +365,10 @@ def simulate_robots_continuous(
                     try:
                         robot.position.añadir_paquete(robot.paquete_actual)
                         paquetes_visuales.remove(robot.paquete_actual)
+                        robot.paquete_actual.picked_at = current_time
+                        transit = current_time - robot.paquete_actual.picked_at
+                        metrics["packet_transit_times"].append(transit)
+                        metrics["total_packets_processed"] += 1
                         robot.paquete_actual = None
                         robot.destino_final = None
                         gestor_robots.espera(robot)
@@ -354,12 +382,15 @@ def simulate_robots_continuous(
                             hilera_reservations,
                             obstacles,
                             max_hilera_h,
+                            metrics
                         )
 
                 elif robot.actividad == Actividad.BUSCAR.value:
                     paquete_recogido = robot.position.retirar_paquete()
                     if paquete_recogido:
                         robot.paquete_actual = paquete_recogido
+                        paquete_recogido.picked_at = current_time
+                        robot.paquete_actual.picked_at = current_time
                         robot.paquete_actual.posicion = robot.continuous_position
                         paquetes_visuales.append(robot.paquete_actual)
                     gestor_robots.salida(robot)
@@ -367,6 +398,21 @@ def simulate_robots_continuous(
                 elif robot.actividad == Actividad.SALIDA.value and robot.position == nodo_q2:
                     if robot.paquete_actual in paquetes_visuales:
                         paquetes_visuales.remove(robot.paquete_actual)
+                    
+                    
+                    # transit = current_time - robot.paquete_actual.picked_at
+                    # metrics["packet_transit_times"].append(transit)
+                    origen = (
+                        robot.paquete_actual.picked_at
+                        if robot.paquete_actual.picked_at is not None
+                        else robot.paquete_actual.created_at
+                        if robot.paquete_actual.created_at is not None
+                        else current_time
+                    )
+                    transit = current_time - origen
+                    metrics["packet_transit_times"].append(transit)
+                    
+                    metrics["total_packets_processed"] += 1
                     robot.paquete_actual = None
                     robot.destino_final = None
                     gestor_robots.espera(robot)
@@ -381,7 +427,10 @@ def simulate_robots_continuous(
         for _, _, data in graph.edges(data=True):
             if data["objeto_arista"].ocupacion > max_occupancy:
                 max_occupancy = data["objeto_arista"].ocupacion
-        max_occupation_array.append(max_occupancy)
+                metrics["max_corridor_occupancy"].append(max_occupancy)
+                sum_corridor_occupation += max_occupancy
+        
+        # max_occupation_array.append(max_occupancy)
 
         # Estado visual de almacenamiento (estantes)
         estado_almacenamiento = {}
@@ -402,6 +451,10 @@ def simulate_robots_continuous(
             tiempos_de_estados['actividad'][robot.actividad] += dt
             tiempos_de_estados['nivel_bateria'][robot.nivel_bateria] += dt
             tiempos_de_estados['prioridad'][robot.prioridad.name] += dt
+            metrics["robot_state_time"][robot.actividad]        += dt
+            metrics["battery_state_time"][robot.nivel_bateria]  += dt
+            metrics["priority_state_time"][robot.prioridad.name] += dt
+
         reservations.release_before(int(current_time / dt))
         hilera_reservations.release_before(int(current_time / dt))
         current_time += dt
@@ -411,7 +464,15 @@ def simulate_robots_continuous(
         for estado in conjunto:
             conjunto[estado] = round(conjunto[estado]/num_robots,3)
 
-    return simulation_data,max_occupation_array,tiempos_de_estados
+    tot_steps   = len(metrics["max_corridor_occupancy"])
+    tot_edges   = graph.number_of_edges()
+    metrics["avg_corridor_occupation_pct"] = (
+        sum_corridor_occupation / (tot_steps * tot_edges)
+        if tot_steps and tot_edges else 0.0
+)
+
+    
+    return simulation_data,metrics
                 
 
 
