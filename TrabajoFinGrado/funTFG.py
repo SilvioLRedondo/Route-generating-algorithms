@@ -2,7 +2,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import random
 import math
-from Clases import Nodo, Arista, Robot, Paquete, Actividad, NivelBateria
+from Clases import Nodo, Arista, Robot, Paquete, Actividad, NivelBateria, Prioridad
 from gestores import GestionRobots, GestionPaquetes
 from reservations import EdgeReservations, HileraReservations
 
@@ -407,9 +407,9 @@ def simulate_robots_continuous(
         current_time += dt
 
     num_robots = len(robots)
-    for category in tiempos_de_estados.values():
-        for key in category:
-            category[key] /= num_robots
+    for conjunto in tiempos_de_estados.values():
+        for estado in conjunto:
+            conjunto[estado] = round(conjunto[estado]/num_robots,3)
 
     return simulation_data,max_occupation_array,tiempos_de_estados
                 

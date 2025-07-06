@@ -5,12 +5,12 @@ from reservations import EdgeReservations, HileraReservations
 
 
 if __name__ == "__main__":
-    n, m, k, d = 4, 4, 16, 1
-    num_robots = 8
-    consumo_robot = 0.5
+    n, m, k, d = 5, 6, 30, 1
+    num_robots = 1
+    consumo_robot = 0.25
     tsam = 0.1
     total_simulation_time = 100
-    carga_inicial = 0.5
+    carga_inicial = 0
     recharge_rate = 1
     MAX_HILERA_H = 20
     HILERA_DEFAULT_CAPACITY = 2
@@ -42,8 +42,10 @@ if __name__ == "__main__":
     time = len(max_occupation_array)
     media = sum(max_occupation_array)/time
     print(max_occupation_array,media)
-    print(tiempos_de_estados)
     
+    tiempoActividad = tiempos_de_estados['actividad']
+
+    print(tiempoActividad)
 
     # Visualización
     

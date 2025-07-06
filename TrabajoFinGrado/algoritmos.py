@@ -8,7 +8,7 @@ def _h(node, goal):
     return math.hypot(dx, dy)
 
 
-def a_star_search(graph, start, goal, obstacles=None):
+def a_star_search(graph, start, goal, obstacles=None, alpha=0.5):
     if obstacles is None:
         obstacles = set()
     queue = []
@@ -24,7 +24,7 @@ def a_star_search(graph, start, goal, obstacles=None):
             if neighbor in obstacles:
                 continue
             arista = graph[current][neighbor]['objeto_arista']
-            new_cost = cost_so_far[current] + arista.get_peso() + arista.longitud()
+            new_cost = cost_so_far[current] + (1-alpha)*arista.get_peso() + alpha*arista.longitud()
             if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
                 cost_so_far[neighbor] = new_cost
                 heapq.heappush(queue, (new_cost, neighbor))
@@ -84,7 +84,13 @@ def a_star_with_reservations(
                 if not hilera_reservations.is_available(int(neighbor.posicion[0]), next_time, prioridad):
                     continue
             next_state = (neighbor, next_time)
+            
+            
+            
             new_cost = cost_so_far[(current_node, current_time)] + 1
+            
+            
+            
             if next_state not in cost_so_far or new_cost < cost_so_far[next_state]:
                 cost_so_far[next_state] = new_cost
                 priority = new_cost + _h(neighbor, goal)
