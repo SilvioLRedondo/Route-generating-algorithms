@@ -6,6 +6,8 @@ from Clases import Nodo, Arista, Robot, Paquete, Actividad, NivelBateria, Priori
 from gestores import GestionRobots, GestionPaquetes
 from reservations import EdgeReservations, HileraReservations
 
+
+
 def GraphGen(n, m, k, d, rs_rate=1):
     """
     Crea un grafo que representa un almacén.
@@ -191,8 +193,11 @@ def simulate_robots_continuous(
     reservations = edge_reservations
 
     # Inicializar temporizadores para recepción y emisión
-    proxima_recepcion = random.uniform(f_min+1, f_max+1) # lowest and highest
-    proxima_emision = random.uniform(f_min, f_max)
+    proxima_recepcion = next_interval("recepcion",gestor_robots.calcular_indice_almacenamiento())
+    proxima_emision   = next_interval("emision",gestor_robots.calcular_indice_almacenamiento())
+
+    # proxima_recepcion = random.uniform(f_min+1, f_max+1) # lowest and highest
+    # proxima_emision = random.uniform(f_min, f_max)
 
     # Inicializar robots correctamente
     for robot in robots:
@@ -212,7 +217,10 @@ def simulate_robots_continuous(
 
     while current_time < total_time:
 
-         # 1) REINICIAR LA OCUPACIÓN DE TODAS LAS ARISTAS 
+        # Obtener el indice de ocupación.
+        ocupacion_actual = gestor_robots.calcular_indice_almacenamiento()
+
+         # REINICIAR LA OCUPACIÓN DE TODAS LAS ARISTAS 
         for u, v, data in graph.edges(data=True):
             data["objeto_arista"].ocupacion = 0
         
@@ -233,16 +241,30 @@ def simulate_robots_continuous(
         proxima_recepcion -= dt
         proxima_emision -= dt
 
+
+        # ─── RECEPCIÓN ────────────────────────────────────────
         if proxima_recepcion <= 0:
             gestor_paquetes.recepcion(current_time)
             metrics["reception_events"] += 1
-            proxima_recepcion = random.uniform(f_min+1, f_max+1)
+            proxima_recepcion = next_interval("recepcion", ocupacion_actual)
 
+        # ─── EMISIÓN ──────────────────────────────────────────
         if proxima_emision <= 0:
             estantes = [node for node in graph.nodes if node.estante]
             gestor_paquetes.emision(estantes)
             metrics["emission_events"] += 1
-            proxima_emision = random.uniform(f_min, f_max)
+            proxima_emision = next_interval("emision", ocupacion_actual)
+
+        # if proxima_recepcion <= 0:
+        #     gestor_paquetes.recepcion(current_time)
+        #     metrics["reception_events"] += 1
+        #     proxima_recepcion = random.uniform(f_min+1, f_max+1)
+
+        # if proxima_emision <= 0:
+        #     estantes = [node for node in graph.nodes if node.estante]
+        #     gestor_paquetes.emision(estantes)
+        #     metrics["emission_events"] += 1
+        #     proxima_emision = random.uniform(f_min, f_max)
 
         obstacles = {r.position for r in robots if r.nivel_bateria == NivelBateria.AGOTADO.value}
 
@@ -474,6 +496,18 @@ def simulate_robots_continuous(
     
     return simulation_data,metrics
                 
+
+def next_interval(evento: str, ocupacion: float) -> float:
+    """
+    Devuelve el tiempo hasta el próximo evento ('recepcion' o 'emision')
+    ajustando la cadencia al nivel de ocupación.
+    """
+    # Si el almacén está muy vacío (<0.7) queremos más **recepciones** y menos emisiones
+    if evento == "recepcion":
+        return random.uniform(0.25, 0.50) if ocupacion < 0.7 else random.uniform(1.25, 1.50)
+    # Si está muy lleno (≥0.7) ocurre lo contrario
+    else:  # evento == "emision"
+        return random.uniform(0.25, 0.50) if ocupacion >= 0.7 else random.uniform(1.25, 1.50)
 
 
 def playback_simulation(graph, simulation_data, dt=0.1):
