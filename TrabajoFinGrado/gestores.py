@@ -1,6 +1,7 @@
 from algoritmos import a_star_search, a_star_with_reservations
 from Clases import Paquete, Actividad, NivelBateria
 import random
+from const import THRESHOLD_HIGH,THRESHOLD_LOW
 
 class GestionRobots:
     def __init__(self, robots, nodo_q1, nodo_q2, graph, hilera_reservations):
@@ -114,7 +115,7 @@ class GestionRobots:
         """
         # 1) Calcular la ocupación actual
         ocupacion = self.calcular_indice_almacenamiento()
-        umbral = 0.7
+        
 
         for robot in self.robots:
             if robot.nivel_bateria != NivelBateria.OPERATIVO.value:
@@ -122,7 +123,7 @@ class GestionRobots:
             # Atendemos solo robots disponibles (actividad 'espera' o sin target)
             if robot.actividad == Actividad.ESPERA.value or robot.target is None:
 
-                if ocupacion < umbral:
+                if ocupacion < THRESHOLD_LOW:
                     # ------------------------------------------
                     # PRIORIDAD: RECEPCIÓN
                     # ------------------------------------------
@@ -157,7 +158,7 @@ class GestionRobots:
                             self.espera(robot)
                             continue
 
-                else:
+                elif ocupacion >= THRESHOLD_HIGH:
                     # ------------------------------------------
                     # PRIORIDAD: EMISIÓN
                     # ------------------------------------------
@@ -186,7 +187,31 @@ class GestionRobots:
                         else:
                             # Ni emisión ni recepción => espera
                             self.espera(robot)
-                            continue
+                            
+                else:
+                    num_rec = len(gestor_paquetes.cola_recepcion)
+                    num_emi = len(gestor_paquetes.cola_emision)
+                    # Si las colas empatan o la de recepción es mayor, priorizamos RECEPCIÓN
+                    if num_rec >= num_emi:
+                        recepcion = gestor_paquetes.obtener_proximo_recepcion()
+                        if recepcion:
+                            destino = self.estante_mas_libre(recepcion.producto)
+                            if destino:
+                                robot.paquete_actual = recepcion
+                                self.recogida(robot)
+                                robot.destino_final = destino
+                                continue
+                    # En caso contrario priorizamos EMISIÓN
+                    emision = gestor_paquetes.obtener_proximo_emision()
+                    if emision:
+                        paquete, estante_origen = emision
+                        robot.paquete_actual = paquete
+                        self.buscar(robot, estante_origen)
+                        robot.destino_final = self.nodo_q2
+                        continue
+                    # Si no hay nada pendiente, espera
+                    self.espera(robot)
+                    continue                    
 
 
     def nearest_station(self, position, obstacles=None):
@@ -249,25 +274,14 @@ class GestionRobots:
     
     def calcular_indice_almacenamiento(self):
         """
-        Calcula la fracción de ocupación global del almacén.
-        Devuelve un valor entre 0.0 (vacío) y 1.0 (completamente lleno).
+        Devuelve la fracción de estantes ocupados (≥ 1 paquete) sobre el total.
+        Valor 0.0 = almacén vacío, 1.0 = todos los estantes con algo.
         """
-        # 1) Listar todos los nodos que sean estantes
-        estantes = [node for node in self.graph.nodes if node.estante is not None]
+        estantes = [n for n in self.graph.nodes if n.estante]
         if not estantes:
-            return 0.0  # No hay estantes => índice 0
-
-        # 2) Capacidad total = cantidad de estantes * 10 (pues cada uno admite hasta 10 paquetes)
-        capacidad_total = len(estantes) * 10
-
-        # 3) Sumar cuántos paquetes hay ocupados realmente
-        paquetes_almacenados = 0
-        for estante in estantes:
-            if estante.almacenamiento is not None:
-                paquetes_almacenados += estante.almacenamiento[1]  # la segunda parte de la tupla (producto, cantidad)
-
-        # 4) Calcular índice = paquetes_almacenados / capacidad_total
-        return paquetes_almacenados / capacidad_total
+            return 0.0
+        ocupados = sum(1 for e in estantes if e.hay_paquetes())
+        return ocupados / len(estantes)
 
 
     def reasignacion(

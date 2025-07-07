@@ -10,7 +10,7 @@ if __name__ == "__main__":
     consumo_robot = 0.25
     tsam = 0.1
     total_simulation_time = 100
-    carga_inicial = 0.5
+    carga_inicial = 0.9
     recharge_rate = 1
     MAX_HILERA_H = 20
     HILERA_DEFAULT_CAPACITY = 2

@@ -5,7 +5,7 @@ import math
 from Clases import Nodo, Arista, Robot, Paquete, Actividad, NivelBateria, Prioridad
 from gestores import GestionRobots, GestionPaquetes
 from reservations import EdgeReservations, HileraReservations
-
+from const import THRESHOLD_HIGH,THRESHOLD_LOW
 
 
 def GraphGen(n, m, k, d, rs_rate=1):
@@ -499,15 +499,36 @@ def simulate_robots_continuous(
 
 def next_interval(evento: str, ocupacion: float) -> float:
     """
-    Devuelve el tiempo hasta el próximo evento ('recepcion' o 'emision')
-    ajustando la cadencia al nivel de ocupación.
+        Calcula el tiempo hasta el próximo evento con tres tramos:
+      ▸ < 0,70  → recepción rápida / emisión lenta  
+      ▸ 0,70-0,85 → cadencia neutra  
+      ▸ ≥ 0,85 → emisión rápida / recepción lenta
     """
     # Si el almacén está muy vacío (<0.7) queremos más **recepciones** y menos emisiones
+    rapido, neutro, lento = (
+        random.uniform(0.25, 0.50),
+        random.uniform(0.75, 1.25),
+        random.uniform(1.50, 1.75),
+    )
+
+
     if evento == "recepcion":
-        return random.uniform(0.25, 0.50) if ocupacion < 0.7 else random.uniform(1.25, 1.50)
-    # Si está muy lleno (≥0.7) ocurre lo contrario
+        
+        if ocupacion < THRESHOLD_LOW:
+            return rapido
+        elif ocupacion >= THRESHOLD_HIGH:
+            return lento
+        else:
+            return neutro
+    
     else:  # evento == "emision"
-        return random.uniform(0.25, 0.50) if ocupacion >= 0.7 else random.uniform(1.25, 1.50)
+        
+        if ocupacion >= THRESHOLD_HIGH:
+            return rapido
+        elif ocupacion < THRESHOLD_LOW:
+            return lento
+        else:
+            return neutro
 
 
 def playback_simulation(graph, simulation_data, dt=0.1):
