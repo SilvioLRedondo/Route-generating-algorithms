@@ -1,3 +1,4 @@
+
 import funTFG
 from funAuxTFG import guardar_informacion,cargar_informacion
 from reservations import EdgeReservations, HileraReservations
@@ -5,15 +6,15 @@ import plot_metrics as pm
 
 
 if __name__ == "__main__":
-    n, m, k, d = 5, 6, 30, 1
-    num_robots = 10
-    consumo_robot = 0.25
+    n, m, k, d = 4, 4, 16, 1
+    num_robots = 5
+    consumo_robot = 0.5
     tsam = 0.1
     total_simulation_time = 100
-    carga_inicial = 0.9
+    carga_inicial = 0.1
     recharge_rate = 1
     MAX_HILERA_H = 20
-    HILERA_DEFAULT_CAPACITY = 2
+    HILERA_DEFAULT_CAPACITY = 3
     HILERA_COLUMN_CAPACITY = {}
     
     # Generación del grafo del almacén
@@ -41,8 +42,14 @@ if __name__ == "__main__":
     )
 
     time = len(metrics["max_corridor_occupancy"])
-    print("El tiempo es:", time)
-
+    # print("El tiempo es:", time)
+    
+    print(metrics['robot_state_time'])
+    
+    pm.visualizar_metricas(metrics, dt=tsam, save_dir=None, show=True)
+    
+    
+    funTFG.playback_simulation(graph, simulation_data, dt=tsam)
 
     # time = len(max_occupation_array)
     # media = sum(max_occupation_array)/time
@@ -55,10 +62,7 @@ if __name__ == "__main__":
 
     # Visualización
     
-    pm.visualizar_metricas(metrics, dt=tsam, save_dir=None, show=True)
 
-    
-    funTFG.playback_simulation(graph, simulation_data, dt=tsam)
 
     
     # posEstante = {node: node.posicion for node in graph.nodes()}
@@ -88,29 +92,6 @@ if __name__ == "__main__":
     # }
     # print("Información sobre los robots:", info_robots)
    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

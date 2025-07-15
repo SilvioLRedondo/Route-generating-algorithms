@@ -118,25 +118,39 @@ def visualizar_metricas(metrics: dict, *, dt: float, save_dir: str | None = None
     # Serie temporal de bloqueos y recargas (dispersión)
     eventos = []
     etiquetas = []
-    if metrics["blockages"]["timestamps"]:
-        eventos.extend(metrics["blockages"]["timestamps"])
-        etiquetas.extend(["Bloqueo"] * len(metrics["blockages"]["timestamps"]))
-    if metrics["recharge_usage"]["timestamps"]:
-        eventos.extend(metrics["recharge_usage"]["timestamps"])
-        etiquetas.extend(["Recarga"] * len(metrics["recharge_usage"]["timestamps"]))
+    bloq  = metrics["blockages"]["timestamps"]
+    recar = metrics["recharge_usage"]["timestamps"]
 
-    if eventos:
-        fig6, ax6 = plt.subplots(figsize=(8, 3))
-        colores = {"Bloqueo": "red", "Recarga": "green"}
-        ax6.scatter(eventos, [0] * len(eventos), c=[colores[e] for e in etiquetas], marker="|", s=200)
-        ax6.set_title("Timestamps de bloqueos y recargas")
-        ax6.set_xlabel("Tiempo (s)")
-        ax6.axes.get_yaxis().set_visible(False)
-        _save(fig6, "06_eventos_bloqueo_recarga", save_dir)
-        if show:
-            plt.show()
-        else:
-            plt.close(fig6)
+    fig6, ax6 = plt.subplots(figsize=(8, 3))
+    ax6.eventplot([bloq, recar],
+                colors=['red', 'green'],
+                lineoffsets=[1, 0],      # y-levels
+                linelengths=0.8)
+
+    ax6.set_yticks([0, 1])
+    ax6.set_yticklabels(['Recarga', 'Bloqueo'])
+    ax6.set_xlabel('Tiempo (s)')
+    ax6.set_title('Línea temporal de bloqueos y recargas')
+
+    # if metrics["blockages"]["timestamps"]:
+    #     eventos.extend(metrics["blockages"]["timestamps"])
+    #     etiquetas.extend(["Bloqueo"] * len(metrics["blockages"]["timestamps"]))
+    # if metrics["recharge_usage"]["timestamps"]:
+    #     eventos.extend(metrics["recharge_usage"]["timestamps"])
+    #     etiquetas.extend(["Recarga"] * len(metrics["recharge_usage"]["timestamps"]))
+
+    # if eventos:
+    #     fig6, ax6 = plt.subplots(figsize=(8, 3))
+    #     colores = {"Bloqueo": "red", "Recarga": "green"}
+    #     ax6.scatter(eventos, [0] * len(eventos), c=[colores[e] for e in etiquetas], marker="|", s=200)
+    #     ax6.set_title("Timestamps de bloqueos y recargas")
+    #     ax6.set_xlabel("Tiempo (s)")
+    #     ax6.axes.get_yaxis().set_visible(False)
+    #     _save(fig6, "06_eventos_bloqueo_recarga", save_dir)
+    #     if show:
+    #         plt.show()
+    #     else:
+    #         plt.close(fig6)
 
     # 7 ───────────────────────────────────────────────
     # Contadores globales en barra horizontal

@@ -1,7 +1,9 @@
 import funTFG
 import networkx as nx
 import matplotlib.pyplot as plt
-n, m, k, d = 1, 1, 1, 0
+
+n, m, k, d = 12, 12, 144, 5
+
 
 rs = 1
 
@@ -9,9 +11,6 @@ G = funTFG.GraphGen(n,m,k,d)
 
 print(len(G))
 
-
-
-adasd
 # Obtener la posicion de los nodos para que el grafo no cambie entre dibujos
 pos = {node: node.posicion for node in G.nodes()}
 

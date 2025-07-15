@@ -1,0 +1,147 @@
+from algoritmos import a_star_search
+from funTFG import GraphGen, inicializar_almacen, create_robots, simulate_robots_continuous
+from reservations import EdgeReservations, HileraReservations
+from aco_optimize import run_aco_optimization
+
+
+def run_astar_simulation(
+    n, m, k, d,
+    recharge_rate,
+    carga_inicial,
+    num_robots,
+    consumo_robot,
+    tsam,
+    total_simulation_time,
+    max_hilera_h,
+    hilera_default_capacity,
+    hilera_column_capacity,
+    speed=1,
+):
+    """
+    Ejecuta una simulación usando A* (con reservas) para planificación de rutas.
+    Devuelve simulation_data y métricas.
+    """
+    # 1) Generar grafo y ambiente
+    graph = GraphGen(n, m, k, d, rs_rate=recharge_rate)
+    inicializar_almacen(graph, carga_inicial)
+    robots = create_robots(num_robots, graph, consumo_robot=consumo_robot)
+    edge_reserv = EdgeReservations()
+    hilera_reserv = HileraReservations(hilera_default_capacity, hilera_column_capacity)
+
+    # 2) Correr simulación
+    sim_data, metrics = simulate_robots_continuous(
+        graph,
+        robots,
+        total_simulation_time,
+        edge_reserv,
+        hilera_reserv,
+        max_hilera_h,
+        dt=tsam,
+        speed=speed,
+    )
+    return sim_data, metrics
+
+
+if __name__ == "__main__":
+    # Parámetros base del almacén y simulación
+    n, m, k, d = 5, 6, 30, 1
+    recharge_rate = 1
+    carga_inicial = 0.9
+    num_robots = 10
+    consumo_robot = 0.25
+    tsam = 0.1
+    total_simulation_time = 100
+    max_hilera_h = 20
+    hilera_default_capacity = 2
+    hilera_column_capacity = {}
+
+    # 1) Simulación A* una sola vez
+    astar_data, astar_metrics = run_astar_simulation(
+        n, m, k, d,
+        recharge_rate,
+        carga_inicial,
+        num_robots,
+        consumo_robot,
+        tsam,
+        total_simulation_time,
+        max_hilera_h,
+        hilera_default_capacity,
+        hilera_column_capacity,
+    )
+    # Extraer tiempo de tránsito y espera para A*
+    transit_astar = (
+        astar_metrics['robot_state_time']['almacenamiento']
+        + astar_metrics['robot_state_time']['salida']
+    )
+    waiting_astar = (
+        astar_metrics['robot_state_time']['recogida']
+        + astar_metrics['robot_state_time']['salida']
+    )
+    print(f"[A*] Tiempo de tránsito: {transit_astar:.3f}, Tiempo de espera: {waiting_astar:.3f}")
+
+    # 2) Optimización con ACO
+
+    objective = "transit"  # o "waiting"
+    
+    best_sol, aco_metrics, aco_data = run_aco_optimization(
+        n, m, k, d,
+        recharge_rate,
+        carga_inicial,
+        num_robots,
+        consumo_robot,
+        tsam,
+        total_simulation_time,
+        max_hilera_h,
+        hilera_default_capacity,
+        hilera_column_capacity,
+        objective=objective,
+        epoch=50,
+        pop_size=20,
+        sample_count=10,
+        n_runs=3,
+    )
+    transit_aco = (
+        aco_metrics['robot_state_time']['almacenamiento']
+        + aco_metrics['robot_state_time']['salida']
+    )
+    waiting_aco = (
+        aco_metrics['robot_state_time']['recogida']
+        + aco_metrics['robot_state_time']['salida']
+    )
+    print(f"[ACO]  Tiempo de tránsito: {transit_aco:.3f}, Tiempo de espera: {waiting_aco:.3f}")
+
+    # 3) Comparativa directa
+    print("Comparativa:")
+    print(best_sol)
+    print(f"  - Tránsito: A* = {transit_astar:.3f}, ACO = {transit_aco:.3f}")
+    print(f"  - Espera : A* = {waiting_astar:.3f}, ACO = {waiting_aco:.3f}")
+
+    # (Opcional) Visualizar métricas y reproducir simulaciones:
+    # import plot_metrics as pm
+    # pm.visualizar_metricas(astar_metrics, dt=tsam)
+    # pm.visualizar_metricas(aco_metrics, dt=tsam)
+    # import funTFG
+    # funTFG.playback_simulation(GraphGen(n, m, k, d, rs_rate=recharge_rate), aco_data, dt=tsam)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
