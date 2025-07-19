@@ -130,7 +130,7 @@ class Robot:
         self.target = None
         self.distance = 0
         self.capacidad_carga = 0
-        self.autonomia = random.randint(45, 100)
+        self.autonomia = random.randint(75, 100)
         self.actividad = Actividad.ESPERA.value
         self.nivel_bateria = NivelBateria.OPERATIVO.value
         self.prioridad = Prioridad.NORMAL
