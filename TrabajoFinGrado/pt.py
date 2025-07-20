@@ -2,8 +2,8 @@ import funTFG
 import networkx as nx
 import matplotlib.pyplot as plt
 
-n, m, k, d = 12, 12, 144, 1
-n, m, k, d = 9, 6, 54, 2
+n, m, k, d = 12, 12, 144, 11
+# n, m, k, d = 9, 6, 54, 2
 
 
 rs = 1

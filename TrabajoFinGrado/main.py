@@ -7,13 +7,11 @@ import random
 random.seed(225288) #42
 
 if __name__ == "__main__":
-    # n, m, k, d = 12, 12, 144, 5
-    # num_robots = 80
-
-    n, m, k, d = 6, 9, 54, 2
-    num_robots = 55
+    n, m, k, d = 12, 12, 144, 1
+    num_robots = 45
     
-    consumo_robot = 0.25
+    
+    consumo_robot = 0.12 # 0.12
     tsam = 0.1
     total_simulation_time = 100
 
