@@ -89,22 +89,22 @@ def visualizar_metricas(metrics: dict, *, tsim, dt: float, save_dir: str | None 
         plt.setp(ax.get_xticklabels(), rotation=10, ha="right")
 
     # 1. Serie temporal de ocupación máxima de pasillos
-    # pasos = len(metrics["max_corridor_occupancy"])
-    # tiempo = [i * dt for i in range(pasos)]
-    # fig1, ax1 = plt.subplots(figsize=(10,5))
-    # ax1.plot(tiempo, metrics["max_corridor_occupancy"], linewidth=2, color=color_general)
-    # ax1.set_title("Ocupación máxima de pasillos (Robots simultáneos)".capitalize())
-    # ax1.set_xlabel("Tiempo (s)".capitalize())
-    # ax1.set_ylabel("N° de robots".capitalize())
-    # ax1.set_xlim(0, tsim)
-    # ax1.grid(axis="y", linestyle="--", linewidth=0.8, alpha=0.7)
-    # for spine in ['top', 'right']:
-    #     ax1.spines[spine].set_visible(False)
-    # _save(fig1, "01_pasillos_tiempo", save_dir)
-    # if show:
-    #     plt.show()
-    # else:
-    #     plt.close(fig1)
+    pasos = len(metrics["max_corridor_occupancy"])
+    tiempo = [i * dt for i in range(pasos)]
+    fig1, ax1 = plt.subplots(figsize=(10,5))
+    ax1.plot(tiempo, metrics["max_corridor_occupancy"], linewidth=2, color=color_general)
+    ax1.set_title("Ocupación máxima de pasillos (Robots simultáneos)".capitalize())
+    ax1.set_xlabel("Tiempo (s)".capitalize())
+    ax1.set_ylabel("N° de robots".capitalize())
+    ax1.set_xlim(0, tsim)
+    ax1.grid(axis="y", linestyle="--", linewidth=0.8, alpha=0.7)
+    for spine in ['top', 'right']:
+        ax1.spines[spine].set_visible(False)
+    _save(fig1, "01_pasillos_tiempo", save_dir)
+    if show:
+        plt.show()
+    else:
+        plt.close(fig1)
 
     # 2. Barras: tiempo medio por ACTIVIDAD del robot
     fig3, ax3 = plt.subplots(figsize=figsize_general)
@@ -116,40 +116,40 @@ def visualizar_metricas(metrics: dict, *, tsim, dt: float, save_dir: str | None 
         plt.close(fig3)
 
     # 3. Barras: tiempo por NIVEL DE BATERÍA
-    # fig4, ax4 = plt.subplots(figsize=figsize_general)
-    # _bar(ax4, metrics["battery_state_time"], "Tiempo por nivel de batería", "Nivel", "Segundos acumulados", color=color_general)
-    # _save(fig4, "04_tiempo_por_bateria", save_dir)
-    # if show:
-    #     plt.show()
-    # else:
-    #     plt.close(fig4)
+    fig4, ax4 = plt.subplots(figsize=figsize_general)
+    _bar(ax4, metrics["battery_state_time"], "Tiempo por nivel de batería", "Nivel", "Segundos acumulados", color=color_general)
+    _save(fig4, "04_tiempo_por_bateria", save_dir)
+    if show:
+        plt.show()
+    else:
+        plt.close(fig4)
 
     # 4. Barras: tiempo por NIVEL DE PRIORIDAD
-    # fig5, ax5 = plt.subplots(figsize=figsize_general)
-    # _bar(ax5, metrics["priority_state_time"], "Tiempo por nivel de prioridad", "Prioridad", "Segundos acumulados", color=color_general)
-    # _save(fig5, "05_tiempo_por_prioridad", save_dir)
-    # if show:
-    #     plt.show()
-    # else:
-    #     plt.close(fig5)
+    fig5, ax5 = plt.subplots(figsize=figsize_general)
+    _bar(ax5, metrics["priority_state_time"], "Tiempo por nivel de prioridad", "Prioridad", "Segundos acumulados", color=color_general)
+    _save(fig5, "05_tiempo_por_prioridad", save_dir)
+    if show:
+        plt.show()
+    else:
+        plt.close(fig5)
 
     # 5. Serie temporal de bloqueos y recargas (dispersión)
-    # bloq  = metrics["blockages"]["timestamps"]
-    # recar = metrics["recharge_usage"]["timestamps"]
-    # fig6, ax6 = plt.subplots(figsize=figsize_general)
-    # ax6.eventplot([bloq, recar], colors=['tab:red', 'tab:green'], lineoffsets=[1, 0], linelengths=0.8)
-    # ax6.set_yticks([0, 1])
-    # ax6.set_yticklabels(['Recarga'.capitalize(), 'Bloqueo'.capitalize()])
-    # ax6.set_xlabel('Tiempo (s)'.capitalize())
-    # ax6.set_title('Línea temporal de bloqueos y recargas'.capitalize(), pad=12)
-    # for spine in ['top', 'right']:
-    #     ax6.spines[spine].set_visible(False)
-    # ax6.grid(axis='x', linestyle='--', linewidth=0.6, alpha=0.5)
-    # _save(fig6, "06_eventos", save_dir)
-    # if show:
-    #     plt.show()
-    # else:
-    #     plt.close(fig6)
+    bloq  = metrics["blockages"]["timestamps"]
+    recar = metrics["recharge_usage"]["timestamps"]
+    fig6, ax6 = plt.subplots(figsize=figsize_general)
+    ax6.eventplot([bloq, recar], colors=['tab:red', 'tab:green'], lineoffsets=[1, 0], linelengths=0.8)
+    ax6.set_yticks([0, 1])
+    ax6.set_yticklabels(['Recarga'.capitalize(), 'Bloqueo'.capitalize()])
+    ax6.set_xlabel('Tiempo (s)'.capitalize())
+    ax6.set_title('Línea temporal de bloqueos y recargas'.capitalize(), pad=12)
+    for spine in ['top', 'right']:
+        ax6.spines[spine].set_visible(False)
+    ax6.grid(axis='x', linestyle='--', linewidth=0.6, alpha=0.5)
+    _save(fig6, "06_eventos", save_dir)
+    if show:
+        plt.show()
+    else:
+        plt.close(fig6)
 
     # 6. Contadores globales en barra **vertical** (etiquetas capitalizadas)
     contadores = {
@@ -181,8 +181,3 @@ def visualizar_metricas(metrics: dict, *, tsim, dt: float, save_dir: str | None 
         plt.show()
     else:
         plt.close(fig7)
-
-    # 8. Texto: porcentaje medio de ocupación de pasillos
-    # porc = metrics.get("avg_corridor_occupation_pct", 0) * 100
-    # print(f"\n\033[1mPorcentaje medio de ocupación de pasillos: {porc:.2f}%\033[0m\n")
-
