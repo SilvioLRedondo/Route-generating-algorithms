@@ -69,7 +69,6 @@ class GestionRobots:
         robot.edge_times = []
         robot.current_edge_index = 0
         robot.progress_along_edge = 0.0
-        # print(f"[RECOGIDA] Robot {robot.id} enviado a q1.")
 
     def almacenamiento(self, robot, destino):
         robot.set_actividad(Actividad.ALMACENAMIENTO.value)
@@ -78,7 +77,6 @@ class GestionRobots:
         robot.edge_times = []
         robot.current_edge_index = 0
         robot.progress_along_edge = 0.0
-        # print(f"[ALMACENAMIENTO] Robot {robot.id} enviado al estante {destino.nombre}.")
 
     def espera(self, robot):
         robot.set_actividad(Actividad.ESPERA.value)
@@ -88,7 +86,6 @@ class GestionRobots:
         robot.current_edge_index = 0
         robot.progress_along_edge = 0.0
         robot.recharge_pending = False
-        # print(f"[ESPERA] Robot {robot.id} en espera en posición actual.")
 
     def buscar(self, robot, nodo_paquete):
         robot.set_actividad(Actividad.BUSCAR.value)
@@ -97,7 +94,6 @@ class GestionRobots:
         robot.edge_times = []
         robot.current_edge_index = 0
         robot.progress_along_edge = 0.0
-        # print(f"[BUSCAR] Robot {robot.id} buscando paquete en {nodo_paquete.nombre}.")
 
     def salida(self, robot):
         robot.set_actividad(Actividad.SALIDA.value)
@@ -106,7 +102,6 @@ class GestionRobots:
         robot.edge_times = []
         robot.current_edge_index = 0
         robot.progress_along_edge = 0.0
-        # print(f"[SALIDA] Robot {robot.id} llevando paquete a q2.")
 
     def asignar_tareas(self, gestor_paquetes):
         """
@@ -311,7 +306,6 @@ class GestionRobots:
 
         # 3) Si no existe estante que admita el producto, devolvemos el paquete a la cola
         if not destino_alternativo:
-            print("[REASIGNACIÓN] No se encontró un estante libre/compatible. Devolviendo paquete a cola.")
             # Devolver el paquete a cola_recepcion para reintentar más tarde
             gestor_paquetes.cola_recepcion.append(robot.paquete_actual)
             
@@ -328,8 +322,6 @@ class GestionRobots:
 
             return  # fin de reasignacion
 
-        # 4) Si encontramos un estante alternativo, reasignamos el robot a ese nuevo destino
-        # print(f"[REASIGNACIÓN] Se reasigna el robot {robot.id} al estante '{destino_alternativo.nombre}'.")
 
         # Preparamos el robot para ir al nuevo objetivo y calcular su ruta
         # Utilizamos plan_route para reservar la ruta con conocimiento temporal
@@ -364,7 +356,6 @@ class GestionPaquetes:
         paquete = Paquete(producto=producto, peso=random.uniform(1, 10))
         paquete.created_at = current_time
         self.cola_recepcion.append(paquete)
-        # print(f"[RECEPCIÓN] Nuevo paquete recibido: {paquete.producto}")
 
     def emision(self, estantes):
         """
@@ -376,7 +367,6 @@ class GestionPaquetes:
         estantes_con_paquetes = [estante for estante in estantes if estante.hay_paquetes()]
 
         if not estantes_con_paquetes:
-            # print("[EMISIÓN] No hay paquetes disponibles para emitir.")
             return None
 
         # Seleccionar un estante aleatorio que tenga paquetes
@@ -386,7 +376,6 @@ class GestionPaquetes:
         # Crear paquete solicitado para emisión
         paquete_solicitado = Paquete(producto=producto, peso=random.uniform(1, 10))
         self.cola_emision.append((paquete_solicitado, estante_elegido))
-        # print(f"[EMISIÓN] Solicitado paquete '{producto}' desde estante {estante_elegido.nombre}")
 
     def obtener_proximo_recepcion(self):
         if self.cola_recepcion:

@@ -121,7 +121,7 @@ def GraphGen(n, m, k, d):
     nodo_q1 = Nodo(nombre="q1", posicion=(medio, -1), peso=1, altura=2)
     nodo_q2 = Nodo(nombre="q2", posicion=(medio, m), peso=1, altura=2)
     a,b = nodo_q1.get_posicion()
-    print(a) #(5.5, -1)
+    
     G.add_node(nodo_q1)
     G.add_node(nodo_q2)
 

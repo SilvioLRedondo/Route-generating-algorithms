@@ -72,7 +72,6 @@ def GraphGen(n, m, k, d):
     for i in range(d):
         a = (m//(d+1))*(i+1)
         ubicaciones_corte.append(a)
-    print(ubicaciones_corte)
     # Conectar nodos adyacentes en la columna del desahogo
     if d >= 0:
         for i in range(d):#range(len(hileras)):

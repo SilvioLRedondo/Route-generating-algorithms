@@ -46,9 +46,8 @@ def GraphGen(n, m, k, d):
         raise ValueError("El desahogo debe estar dentro de la cantidad de ubicaciones por hilera.")
 
     medio = (n-1)/2
-    print('impar')
+    
     if n%2 ==0:
-        print('par')
         medio = n/2 -0.5
     
     G = nx.Graph()
@@ -96,13 +95,6 @@ def GraphGen(n, m, k, d):
     # Creación de pasillos. esto lo dejo por si fuera de utilidad, actualmente
     # todo esto se hace en el siguiente bucle, esto es útil para visualizar 
     # los pasillos
-
-    #ubicaciones_corte=[]
-    #for i in range(d):
-    #    a = (m//(d+1))*(i+1)
-    #    ubicaciones_corte.append(a)
-    #print(ubicaciones_corte)
-
 
     # Conectar nodos adyacentes en la columna del desahogo
   

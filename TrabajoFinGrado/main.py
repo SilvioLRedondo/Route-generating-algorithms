@@ -48,8 +48,13 @@ if __name__ == "__main__":
 
     # Representación de la simulación
     funTFG.playback_simulation(graph, simulation_data, dt=tsam)
+    
+    # Opción para guardar información
+    guardar_informacion(simulation_data)
 
     # Representación de métricas
     pm.visualizar_metricas(metrics, tsim=total_simulation_time, dt=tsam, save_dir=None, show=True)
+
+
     
     

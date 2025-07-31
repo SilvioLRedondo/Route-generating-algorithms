@@ -10,7 +10,6 @@ rs = 1
 
 G = funTFG.GraphGen(n,m,k,d)
 
-print(len(G))
 
 # Obtener la posicion de los nodos para que el grafo no cambie entre dibujos
 pos = {node: node.posicion for node in G.nodes()}
