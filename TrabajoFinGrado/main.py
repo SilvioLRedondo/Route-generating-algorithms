@@ -7,8 +7,8 @@ import random
 random.seed(225288) 
 
 if __name__ == "__main__":
-    n, m, k, d = 12, 12, 144, 1
-    num_robots = 70
+    n, m, k, d = 6, 9, 54, 2
+    num_robots = 35
     
     
     consumo_robot = 0.12 # 0.12
